@@ -1,0 +1,11 @@
+#brand-filters .siftbar {
+  --siftbar-focus-color: #7053b8;
+  --siftbar-chip-bg: #f1edfa;
+  --siftbar-chip-text: #493477;
+  --siftbar-border: #c9bfdd;
+  --siftbar-option-active: #f1edfa;
+  --siftbar-radius: 18px;
+  --siftbar-chip-radius: 12px;
+  --siftbar-padding: 12px;
+}
+#narrow-filters { width: 260px; max-width: 100%; }

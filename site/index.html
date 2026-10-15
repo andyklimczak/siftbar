@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Siftbar: a framework-free filter bar. Live review filtering, presets, and visible API handlers.">
+  <title>Siftbar — structured filters, without the framework</title>
+  <link rel="stylesheet" href="./dist/styles.css"><link rel="stylesheet" href="./site.css"><link rel="stylesheet" href="./examples/vanilla/themes.css">
+  <script type="module" src="./app.js"></script>
+</head>
+<body>
+  <header class="topbar"><a class="wordmark" href="./">siftbar<span class="mark"> / </span></a><nav aria-label="Main"><a href="#playground">Basic</a><a href="#preset-buttons">Presets</a><a href="#reports">API</a><a href="./guide.html">Documentation</a></nav><span class="version" id="version">v0.1.0</span></header>
+  <main>
+    <section class="hero"><p class="eyebrow">SMALL LIBRARY. STRUCTURED SEARCH.</p><h1>Find the signal.<br><span>Skip the syntax.</span></h1><p class="intro">A framework-free, typed filter bar for your data.</p></section>
+    <section id="integration" class="integration-guide" aria-labelledby="integration-title">
+      <h2 id="integration-title">In your application</h2>
+      <div class="integration-steps">
+        <article><h3>1. Load assets</h3><pre><code>&lt;link rel="stylesheet" href="./dist/styles.css"&gt;
+&lt;div id="filters"&gt;&lt;/div&gt;
+&lt;script type="module" src="./filters.js"&gt;&lt;/script&gt;</code></pre></article>
+        <article><h3>2. Define fields</h3><pre><code>import { Siftbar } from './dist/siftbar.js';
+
+const bar = new Siftbar(host, {
+  fields,
+  onChange: updateResults,
+});</code></pre></article>
+        <article><h3>3. Connect results</h3><p>Implement <code>updateResults</code> to fetch and render your data. The working handlers are shown below.</p></article>
+      </div>
+    </section>
+    <p id="site-error" role="alert"></p>
+
+    <section id="playground" class="example-section" aria-labelledby="basic-title">
+      <div class="section-title"><div><p class="eyebrow">01 / BASIC</p><h2 id="basic-title"><a class="example-link" href="#playground">Filter reviews<span class="permalink" aria-hidden="true"> #</span></a></h2></div></div>
+      <div class="example-grid"><div class="demo-card">
+        <div class="card-top"><strong>Reviews</strong><span id="basic-count" class="count" aria-live="polite"></span></div>
+        <!-- @markup-basic:start -->
+        <div id="basic-filters"></div>
+        <!-- @markup-basic:end -->
+        <p id="basic-status" class="data-status fine-print" role="status"></p><button id="basic-retry" type="button" hidden>Retry</button>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="Matching reviews"><table><caption class="visually-hidden">Basic matching reviews</caption><thead><tr><th>Product</th><th>Brand</th><th>Category</th><th>Rating</th><th>Released</th></tr></thead><tbody id="basic-rows"></tbody></table></div>
+      </div><aside class="code-card" aria-label="Basic configuration code" data-handler="snippets/basic.results.js" data-setup="snippets/basic.js" data-markup="snippets/basic.html" data-sources="examples/vanilla/basic.js,examples/report-of-week/schema.js,examples/report-of-week/results.js,examples/report-of-week/data.js,examples/vanilla/evaluate.js"><div class="code-top"><strong>Setup</strong><button type="button" class="copy-code">Copy code</button></div><div class="setup-tabs"></div><pre><code></code></pre><p class="code-note"></p><details class="source-details"><summary>Full source</summary><div class="source-tabs"></div></details></aside></div>
+    </section>
+
+    <section id="preset-buttons" class="example-section" aria-labelledby="buttons-title">
+      <div class="section-title"><div><p class="eyebrow">02 / PRESET BUTTONS</p><h2 id="buttons-title"><a class="example-link" href="#preset-buttons">Quick choices<span class="permalink" aria-hidden="true"> #</span></a></h2></div></div>
+      <div class="example-grid"><div class="demo-card"><div class="card-top"><strong>Reviews</strong><span id="buttons-count" class="count" aria-live="polite"></span></div>
+        <!-- @markup-buttons:start -->
+        <div id="button-filters"></div>
+        <div class="toolbar"><button type="button" id="fast-food-preset">Fast food rated 8+</button><button type="button" id="energy-preset">Energy Crisis</button></div>
+        <!-- @markup-buttons:end -->
+        <p id="buttons-status" class="data-status fine-print" role="status"></p><button id="buttons-retry" type="button" hidden>Retry</button>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="Preset matching reviews"><table><caption class="visually-hidden">Preset-button matching reviews</caption><thead><tr><th>Product</th><th>Brand</th><th>Category</th><th>Rating</th><th>Released</th></tr></thead><tbody id="buttons-rows"></tbody></table></div>
+      </div><aside class="code-card" aria-label="Preset button configuration code" data-handler="snippets/buttons.results.js" data-setup="snippets/buttons.js" data-markup="snippets/buttons.html" data-sources="examples/vanilla/preset-buttons.js,examples/report-of-week/schema.js,examples/report-of-week/results.js,examples/report-of-week/data.js"><div class="code-top"><strong>Setup</strong><button type="button" class="copy-code">Copy code</button></div><div class="setup-tabs"></div><pre><code></code></pre><p class="code-note"></p><details class="source-details"><summary>Full source</summary><div class="source-tabs"></div></details></aside></div>
+    </section>
+
+    <section id="preset-dropdown" class="example-section" aria-labelledby="local-title">
+      <div class="section-title"><div><p class="eyebrow">03 / PRESET DROPDOWN</p><h2 id="local-title"><a class="example-link" href="#preset-dropdown">Presets and Clear<span class="permalink" aria-hidden="true"> #</span></a></h2></div></div>
+      <div class="example-grid"><div class="demo-card"><div class="card-top"><strong>Reviews</strong><span id="local-count" class="count" aria-live="polite"></span></div>
+        <!-- @markup-local:start -->
+        <div id="local-filters"></div>
+        <div class="toolbar"><label>Preset <select id="local-preset"><option value="empty">All reviews</option><option value="fastFood">Fast food rated 8+</option><option value="energy">Energy Crisis</option><option value="recent">2025–2026</option><option value="custom" disabled>Custom filters</option></select></label><button type="button" id="local-reset">Clear</button></div>
+        <!-- @markup-local:end -->
+        <p id="local-status" class="data-status fine-print" role="status"></p><button id="local-retry" type="button" hidden>Retry</button>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="Dropdown matching reviews"><table><caption class="visually-hidden">Preset-dropdown matching reviews</caption><thead><tr><th>Product</th><th>Brand</th><th>Category</th><th>Rating</th><th>Released</th></tr></thead><tbody id="local-rows"></tbody></table></div>
+        <details id="local-tools" class="demo-tools"><summary>State tools</summary><label for="local-state">Filter JSON</label><textarea id="local-state" rows="10" spellcheck="false"></textarea><div class="toolbar"><button type="button" id="local-copy">Copy JSON</button><button type="button" id="local-restore">Restore JSON</button></div><p id="local-error" role="alert" class="error"></p></details>
+      </div><aside class="code-card" aria-label="Preset dropdown configuration code" data-handler="snippets/local.results.js" data-setup="snippets/local.js" data-markup="snippets/local.html" data-sources="examples/vanilla/local.js,examples/vanilla/presets.js,examples/report-of-week/schema.js,examples/report-of-week/results.js,examples/report-of-week/data.js"><div class="code-top"><strong>Setup</strong><button type="button" class="copy-code">Copy code</button></div><div class="setup-tabs"></div><pre><code></code></pre><p class="code-note"></p><details class="source-details"><summary>Full source</summary><div class="source-tabs"></div></details></aside></div>
+    </section>
+
+    <section id="reports" class="example-section" aria-labelledby="reports-title">
+      <div class="section-title"><div><p class="eyebrow">04 / API</p><h2 id="reports-title"><a class="example-link" href="#reports">The Report of the Week<span class="permalink" aria-hidden="true"> #</span></a></h2></div><p>Category, rating, and date filters.</p></div>
+      <div class="example-grid"><div class="demo-card"><div class="card-top"><strong>Reviews</strong><span id="reports-count" class="count" aria-live="polite"></span></div>
+        <!-- @markup-reports:start -->
+        <div id="reports-filters"></div>
+        <!-- @markup-reports:end -->
+        <p id="reports-status" class="data-status fine-print" role="status"></p><button id="reports-retry" type="button" hidden>Retry</button>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="API matching reviews"><table><caption class="visually-hidden">API matching reviews</caption><thead><tr><th>Product</th><th>Brand</th><th>Category</th><th>Rating</th><th>Released</th></tr></thead><tbody id="reports-rows"></tbody></table></div>
+      </div><aside class="code-card" aria-label="Review configuration code" data-handler="snippets/reports.results.js" data-setup="snippets/reports.js" data-markup="snippets/reports.html" data-sources="examples/report-of-week/reports.js,examples/report-of-week/schema.js,examples/report-of-week/results.js,examples/report-of-week/data.js,examples/vanilla/evaluate.js"><div class="code-top"><strong>Setup</strong><button type="button" class="copy-code">Copy code</button></div><div class="setup-tabs"></div><pre><code></code></pre><p class="code-note"></p><details class="source-details"><summary>Full source</summary><div class="source-tabs"></div></details></aside></div>
+    </section>
+
+    <section id="styling" class="example-section" aria-labelledby="theme-title">
+      <div class="section-title"><div><p class="eyebrow">05 / STYLING</p><h2 id="theme-title"><a class="example-link" href="#styling">Make it yours<span class="permalink" aria-hidden="true"> #</span></a></h2></div></div>
+      <div class="example-grid"><div class="demo-card">
+        <!-- @markup-themes:start -->
+        <h3>Dark</h3><div id="dark-filters"></div><h3>Custom brand</h3><div id="brand-filters"></div><h3>Narrow container</h3><div id="narrow-filters"></div>
+        <!-- @markup-themes:end -->
+      </div><aside class="code-card" aria-label="Theme configuration code" data-setup="snippets/themes.js" data-markup="snippets/themes.html" data-styles="examples/vanilla/themes.css" data-sources="examples/vanilla/themes.js,examples/report-of-week/schema.js,examples/vanilla/themes.html"><div class="code-top"><strong>Setup</strong><button type="button" class="copy-code">Copy code</button></div><div class="setup-tabs"></div><pre><code></code></pre><p class="code-note"></p><details class="source-details"><summary>Full source</summary><div class="source-tabs"></div></details></aside></div>
+    </section>
+
+    <section id="containers" class="example-section" aria-labelledby="modal-title">
+      <div class="section-title"><div><p class="eyebrow">06 / MODAL</p><h2 id="modal-title"><a class="example-link" href="#containers">Forms and dialogs<span class="permalink" aria-hidden="true"> #</span></a></h2></div></div>
+      <div class="example-grid"><div class="demo-card"><button type="button" id="open-modal">Open modal</button></div><aside class="code-card" aria-label="Modal configuration code" data-setup="snippets/modal.js" data-markup="snippets/modal.html" data-sources="examples/vanilla/modal.js,examples/report-of-week/schema.js,examples/vanilla/modal.html"><div class="code-top"><strong>Setup</strong><button type="button" class="copy-code">Copy code</button></div><div class="setup-tabs"></div><pre><code></code></pre><p class="code-note"></p><details class="source-details"><summary>Full source</summary><div class="source-tabs"></div></details></aside></div>
+    </section>
+  </main>
+  <dialog id="filter-dialog"><h2>Filter in a modal</h2><form method="dialog"><div class="modal-scroll"><p>Scrollable container</p>
+    <!-- @markup-modal:start -->
+    <div id="modal-filters"></div>
+    <!-- @markup-modal:end -->
+    <input type="hidden" id="modal-state" name="filters"><div class="modal-spacer"></div></div><button type="button" id="close-modal">Close</button></form></dialog>
+  <footer>Siftbar · <a href="./license.txt">MIT licensed</a></footer>
+</body></html>

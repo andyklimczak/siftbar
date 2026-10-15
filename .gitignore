@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+
+# Generated library and GitHub Pages output
+dist/
+site-dist/
+*.tgz
+*.tsbuildinfo
+
+# Test output and generated browser fixtures
+coverage/
+.nyc_output/
+playwright-report/
+blob-report/
+test-results/
+tests/browser/fixtures/generated/
+
+# Tool caches and logs
+.cache/
+.eslintcache
+*.log
+
+# Local environment files (keep safe templates versionable)
+.env
+.env.*
+!.env.example
+!.env.*.example
+!.env.sample
+!.env.*.sample
+
+# Editor and operating-system files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+Desktop.ini

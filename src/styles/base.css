@@ -1,0 +1,45 @@
+/* Structural and accessibility rules only. No host-page reset. */
+:where(.siftbar, .siftbar *) { box-sizing: border-box; }
+:where(.siftbar) { position: relative; min-width: 0; }
+:where(.siftbar [hidden]) { display: none; }
+:where(.siftbar__bar) { display: flex; align-items: center; flex-wrap: wrap; min-width: 0; gap: var(--siftbar-gap, 6px); }
+:where(.siftbar__chips) { display: contents; }
+:where(.siftbar__chip) { display: inline-flex; align-items: center; min-width: 0; max-width: 100%; }
+:where(.siftbar__chip-edit) { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 100%; }
+:where(.siftbar__chip-remove) { flex-shrink: 0; }
+:where(.siftbar__add) { flex: 1 1 120px; min-width: 80px; max-width: 100%; }
+:where(.siftbar__popup) { position: fixed; inset: auto; margin: 0; width: var(--siftbar-popup-width, 380px); overflow: auto; z-index: var(--siftbar-popup-z, 1000); container-type: inline-size; }
+:where(.siftbar__popup[data-step="value"]) { width: var(--siftbar-editor-width, var(--siftbar-popup-width, 720px)); }
+:where(.siftbar__editor-row) { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 2fr); gap: var(--siftbar-gap, 6px); align-items: start; }
+:where(.siftbar__popup[data-step="value"]:has(.siftbar__editor-row--no-value)) { width: var(--siftbar-editor-width, var(--siftbar-popup-width, 380px)); }
+:where(.siftbar__editor-row--no-value) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+:where(.siftbar__value-cell) { min-width: 0; }
+:where(.siftbar__enum-control) { display: flex; flex-wrap: wrap; align-items: center; min-width: 0; gap: 4px; }
+:where(.siftbar__enum-tokens) { display: contents; }
+:where(.siftbar__enum-control .siftbar__picker-input) { flex: 1 1 90px; width: auto; min-width: 0; }
+:where(.siftbar__enum-chip) { display: inline-flex; align-items: center; min-width: 0; max-width: 100%; }
+:where(.siftbar__enum-chip-label) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+:where(.siftbar__enum-chip-remove) { flex-shrink: 0; }
+:where(.siftbar__enum-dropdown) { min-width: 0; margin-block-start: 6px; }
+:where(.siftbar__enum-dropdown .siftbar__list) { width: 100%; }
+@container (max-width: 560px) {
+  :where(.siftbar__editor-row) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  :where(.siftbar__value-cell) { grid-column: 1 / -1; }
+}
+@container (max-width: 320px) {
+  :where(.siftbar__editor-row) { grid-template-columns: minmax(0, 1fr); }
+}
+:where(.siftbar__popup[data-positioned="false"]) { visibility: hidden; }
+:where(.siftbar__list) { max-height: var(--siftbar-list-height, 240px); overflow: auto; }
+:where(.siftbar__option) { display: flex; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; }
+:where(.siftbar__option-label) { min-width: 0; overflow-wrap: anywhere; }
+:where(.siftbar__type) { flex-shrink: 0; }
+:where(.siftbar__label) { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+:where(.siftbar__context) { display: contents; }
+:where(.siftbar__values) { display: flex; flex-wrap: wrap; gap: var(--siftbar-gap, 6px); }
+:where(.siftbar__values > *) { flex: 1 1 130px; }
+:where(.siftbar__picker-input, .siftbar__value-input, .siftbar__field-select, .siftbar__operator-select) { width: 100%; min-width: 0; }
+:where(.siftbar__heading, .siftbar__help, .siftbar__selection, .siftbar__error) { overflow-wrap: anywhere; }
+:where(.siftbar__sr) { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+:where(.siftbar :focus-visible) { outline: 2px solid var(--siftbar-focus-color, #2563eb); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { :where(.siftbar, .siftbar *) { scroll-behavior: auto; } }
