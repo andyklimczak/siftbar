@@ -416,11 +416,13 @@ local environment files, logs, and editor files; keep `package-lock.json` commit
 To publish after pushing this repository to GitHub:
 
 1. Open **Settings → Pages → Build and deployment** and select **GitHub Actions**.
-2. Open **Actions → Deploy examples to GitHub Pages → Run workflow** on the default branch.
+2. Push changes to **master**; the deployment workflow runs automatically.
+   You can also use **Actions → Deploy examples to GitHub Pages → Run workflow**.
 3. Approve the `github-pages` environment if repository rules require it.
 4. Open the URL shown by the deployment, normally `https://<owner>.github.io/<repo>/`.
 
-The workflow is deliberately **manual-only**: pushing commits does not deploy.
+The workflow deploys automatically on pushes to **master**, with manual runs also available.
+Pushes to other branches do not automatically deploy.
 It installs Node 22 and all three Playwright browsers/system dependencies, runs the
 complete checks, uploads `site-dist/`, and deploys only after a successful build.
 Deployment permissions are scoped to the deploy job; failed checks retain browser

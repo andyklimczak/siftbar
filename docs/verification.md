@@ -80,9 +80,10 @@ Browser artifacts are self-contained, minified, with source maps, separate CSS,
 declarations, version metadata, and MIT notices. Package checks print raw/gzip sizes.
 Only library files, README, and licenses are packed, not examples/dev tooling.
 Pages-ready assets build into site-dist/ with relative paths and .nojekyll. Public
-review results require network access; the prepared Pages workflow is manual-only.
+review results require network access; the Pages workflow runs on pushes to master
+and supports manual runs.
 Local root/project-path tests verify built assets and .nojekyll.
-The manual-only workflow uses Node 22 on Ubuntu 24.04, installs all browser dependencies,
+The workflow uses Node 22 on Ubuntu 24.04, installs all browser dependencies,
 retains failure diagnostics, and grants deployment permissions only to the deploy job.
 .gitignore checks verify generated/local files are excluded while source, lockfile,
 license, workflow, and environment templates remain versionable. The workflow has not

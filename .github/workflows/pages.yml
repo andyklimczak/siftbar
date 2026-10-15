@@ -1,7 +1,10 @@
 name: Deploy examples to GitHub Pages
 
-# Deployment stays opt-in; pushing code does not publish the site.
+# Deploy pushes to master; manual runs remain available.
 on:
+  push:
+    branches:
+      - master
   workflow_dispatch:
 
 permissions:
