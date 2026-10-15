@@ -55,6 +55,20 @@ Start with `npm run dev`, then open http://127.0.0.1:4173/siftbar/.
 - Enter in draft controls never submits an enclosing form; deliberate form submit
   still works outside the filter editor.
 
+## Opt-in quick search
+
+- Mount with text fields and `quickSearchFields: ['email', 'user_id']` as in the README.
+- Paste an email or UUID into the plain bar input and press Enter. Confirm only the
+  value remains in the input, no chip is created, and the host applies OR across
+  those fields and AND with chips. Typing/paste/blur alone must not run a search.
+- Activate Add filter with keyboard and touch. Browse fields using the popup's own
+  search input; adding/editing/removing chips must preserve the plain search value.
+- Empty the plain input and press Enter to clear search only. Clear resets both
+  search and chips. Escape restores committed text. Repeat with an actual CJK IME.
+- Restore saved search after destroy/remount; no initial change should fire.
+- Repeat mobile, translated controls, and screen-reader checks for the plain input,
+  Add filter button, field picker focus, and search/clear announcements.
+
 ## Screen readers
 
 Check at least NVDA + Firefox/Chrome and VoiceOver + Safari when available. Record

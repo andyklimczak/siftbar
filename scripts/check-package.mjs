@@ -21,10 +21,14 @@ try {
   assert.equal(typeof globalThis.document, 'undefined');
   const consumer = join(temporary, 'consumer.mts');
   await writeFile(consumer, `import { Siftbar, DEFAULT_MESSAGES, type FilterCondition, type FilterState, type Field, type SiftbarMessages, type SiftbarMessageOverrides } from 'siftbar';
-const fields: Field[] = [{ key: 'n', label: 'Number', type: 'number', integer: true }];
+const fields: Field[] = [{ key: 'n', label: 'Number', type: 'number', integer: true }, { key: 'email', label: 'Email', type: 'text' }];
 const defaults: Readonly<SiftbarMessages> = DEFAULT_MESSAGES;
 const messages: SiftbarMessageOverrides = { clear: 'Limpiar', operators: { eq: 'es' }, validation: { minimum: 'Mínimo: {min}' } };
-const instance = new Siftbar(document.createElement('div'), { fields, messages });
+const instance = new Siftbar(document.createElement('div'), { fields, messages, quickSearchFields: ['email'] });
+instance.setSearch('andy@test.com');
+instance.setSearch('', { emit: false });
+// @ts-expect-error quick search accepts text, not typed condition values
+instance.setSearch(123);
 // @ts-expect-error unknown message key must be rejected by declarations
 const badMessage: SiftbarMessageOverrides = { unknown: 'x' };
 // @ts-expect-error messages must be plain strings, not callbacks

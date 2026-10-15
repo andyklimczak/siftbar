@@ -6,6 +6,11 @@ export const DEFAULT_MESSAGES: Readonly<SiftbarMessages> = Object.freeze({
   label: 'Filters',
   placeholder: 'Add a filter…',
   addFilterLabel: '{label}: add a filter',
+  addFilter: 'Add filter',
+  quickSearchLabel: 'Search {fields}',
+  quickSearchPlaceholder: 'Search…',
+  searchApplied: 'Search applied.',
+  searchCleared: 'Search cleared.',
   clear: 'Clear',
   clearLabel: 'Clear filters',
   chooseField: 'Choose a field',
@@ -67,7 +72,7 @@ export const DEFAULT_MESSAGES: Readonly<SiftbarMessages> = Object.freeze({
 
 // Only named parameters documented for a message are accepted in overrides.
 export const MESSAGE_PARAMETERS: Readonly<Record<string, readonly string[]>> = {
-  addFilterLabel: ['label'], addDialogLabel: ['field'], editDialogLabel: ['field'],
+  quickSearchLabel: ['fields'], addFilterLabel: ['label'], addDialogLabel: ['field'], editDialogLabel: ['field'],
   valuesLabel: ['field'], selectedValues: ['values'], removeSelectedValueLabel: ['value'],
   selectedValueRemoved: ['value'], editFilterLabel: ['filter'], removeFilterLabel: ['filter'],
   filterAdded: ['filter'], filterUpdated: ['filter'], valuesIn: ['suffix'],

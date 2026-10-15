@@ -57,6 +57,9 @@ existing instance. Different instances can use different languages.
 | `label` | Filters — default group label | — |
 | `placeholder` | Add a filter… — default add-field placeholder | — |
 | `addFilterLabel` | {label}: add a filter | `label` |
+| `addFilter` | Add filter — button text when quick search is enabled | — |
+| `quickSearchLabel` | Search {fields} — plain input's accessible name | `fields` |
+| `quickSearchPlaceholder` | Search… — plain input's placeholder | — |
 | `clear` | Clear — visible button text | — |
 | `clearLabel` | Clear filters — button's accessible name | — |
 | `chooseField` | Choose a field — picker heading | — |
@@ -82,6 +85,8 @@ existing instance. Different instances can use different languages.
 | --- | --- | --- |
 | `selectedValueRemoved` | {value} removed from selected values. | `value` |
 | `filtersCleared` | Filters cleared. | — |
+| `searchApplied` | Search applied. | — |
+| `searchCleared` | Search cleared. | — |
 | `filterRemoved` | Filter removed. | — |
 | `filterAdded` | Filter added: {filter}. | `filter` |
 | `filterUpdated` | Filter updated: {filter}. | `filter` |
@@ -104,7 +109,7 @@ existing instance. Different instances can use different languages.
 | `valueWithSuffix` | {value} {suffix} — number chips with a suffix | `value`, `suffix` |
 | `filterLabel` | {field} {operator} {value} — ordinary chip text | `field`, `operator`, `value` |
 | `filterLabelWithoutValue` | {field} {operator} — empty/not-empty chip text | `field`, `operator` |
-| `listSeparator` | `, ` — enum chip lists and selection status | — |
+| `listSeparator` | `, ` — enum lists, selection status, and quick-search field names | — |
 | `valuesIn` | Values in {suffix}. — number editor help | `suffix` |
 
 Field labels, enum option labels, groups, aliases, and suffixes are app-supplied;

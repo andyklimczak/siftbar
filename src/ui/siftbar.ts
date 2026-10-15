@@ -3,7 +3,7 @@ import { filterLabel } from '../core/format.js';
 import { formatMessage } from '../core/messages.js';
 import { noValue, operatorLabel, operatorsFor } from '../core/operators.js';
 import { StateStore } from '../core/state.js';
-import { copyState, copyValue, SiftbarValidationError, validateMessages, validateSchema, valueError } from '../core/validation.js';
+import { copyState, copyValue, SiftbarValidationError, validateMessages, validateQuickSearchFields, validateSchema, valueError } from '../core/validation.js';
 import type { ChangeDetail, EmitOptions, Field, Filter, FilterCondition, FilterState, FilterValue, OperatorId, SiftbarMessages, SiftbarOptions, ValidationIssue } from '../core/types.js';
 
 type Step = 'field' | 'value';
@@ -25,6 +25,8 @@ export class Siftbar {
   private readonly root: HTMLDivElement;
   private readonly chips: HTMLDivElement;
   private readonly input: HTMLInputElement;
+  private readonly addControl: HTMLElement;
+  private readonly quickSearchFields: string[];
   private readonly clearButton: HTMLButtonElement;
   private readonly popup: HTMLDivElement;
   private readonly live: HTMLDivElement;
@@ -66,10 +68,11 @@ export class Siftbar {
     if (options.theme !== undefined && !['system', 'light', 'dark'].includes(options.theme)) invalid('theme', 'Expected system, light, or dark.');
     if (options.onChange !== undefined && typeof options.onChange !== 'function') invalid('onChange', 'Expected a function.');
     if (issues.length) throw new SiftbarValidationError(issues);
+    this.quickSearchFields = validateQuickSearchFields(options.quickSearchFields, this.fields);
     this.messages = validateMessages(options.messages);
     this.doc = host.ownerDocument;
-    this.options = { ...options, fields: this.fields, messages: this.messages };
-    this.store = new StateStore(this.fields);
+    this.options = { ...options, fields: this.fields, quickSearchFields: this.quickSearchFields, messages: this.messages };
+    this.store = new StateStore(this.fields, this.quickSearchFields);
     let uid: string;
     do { uid = `siftbar-${++instanceSequence}`; } while (this.doc.querySelector(`[id^="${uid}-"]`));
     this.uid = uid;
@@ -84,11 +87,18 @@ export class Siftbar {
     const icon = this.element('span', 'siftbar__icon', '⌕');
     icon.setAttribute('aria-hidden', 'true');
     this.chips = this.element('div', 'siftbar__chips');
-    this.input = this.element('input', 'siftbar__add');
+    this.input = this.element('input', this.quickSearchFields.length ? 'siftbar__search' : 'siftbar__add');
     this.input.type = 'text';
-    this.input.placeholder = options.placeholder ?? this.messages.placeholder;
-    this.input.setAttribute('aria-label', formatMessage(this.messages.addFilterLabel, { label }));
+    this.input.placeholder = this.quickSearchFields.length ? this.messages.quickSearchPlaceholder : options.placeholder ?? this.messages.placeholder;
+    this.input.setAttribute('aria-label', this.quickSearchFields.length
+      ? formatMessage(this.messages.quickSearchLabel, { fields: this.quickSearchFields.map(key => this.fields.find(field => field.key === key)!.label).join(this.messages.listSeparator) })
+      : formatMessage(this.messages.addFilterLabel, { label }));
     this.input.autocomplete = 'off';
+    this.addControl = this.quickSearchFields.length ? this.button(formatMessage(this.messages.addFilterLabel, { label }), 'siftbar__add', () => {
+      this.finishDraft();
+      if (!this.dead) this.beginAdd();
+    }) : this.input;
+    if (this.quickSearchFields.length) this.addControl.textContent = this.messages.addFilter;
     this.clearButton = this.button(this.messages.clearLabel, 'siftbar__clear', () => this.clear());
     this.clearButton.textContent = this.messages.clear;
     this.popup = this.element('div', 'siftbar__popup');
@@ -99,20 +109,24 @@ export class Siftbar {
     this.live.setAttribute('role', 'status');
     this.live.setAttribute('aria-live', 'polite');
     this.live.setAttribute('aria-atomic', 'true');
-    bar.append(icon, this.chips, this.input, this.clearButton);
+    bar.append(icon, this.chips, this.input);
+    if (this.addControl !== this.input) bar.append(this.addControl);
+    bar.append(this.clearButton);
     this.root.append(bar, this.popup, this.live);
     host.append(this.root);
     mounted.set(host, this);
     this.host = host;
-    this.setupCombo(this.input);
+    if (!this.quickSearchFields.length) this.setupCombo(this.input);
     const signal = this.abort.signal;
     this.input.addEventListener('focus', () => {
+      if (this.quickSearchFields.length) return;
       if (!this.suppressOpen && (!this.draft || this.combo !== this.input)) {
         this.finishDraft();
         if (!this.dead) this.beginAdd();
       }
     }, { signal });
     this.input.addEventListener('click', () => {
+      if (this.quickSearchFields.length) return;
       if (!this.draft || this.combo !== this.input) {
         this.finishDraft();
         if (!this.dead) this.beginAdd();
@@ -120,6 +134,7 @@ export class Siftbar {
     }, { signal });
     this.input.addEventListener('input', () => {
       this.selectedChip = undefined;
+      if (this.quickSearchFields.length) return;
       if (!this.draft || this.combo !== this.input) {
         const query = this.input.value;
         this.finishDraft();
@@ -158,23 +173,38 @@ export class Siftbar {
     this.store.setFilters(filters);
     this.afterSet(emit);
   }
+  /** Commit plain search text. Empty text clears search, retaining filter chips. */
+  setSearch(value: string, { emit = true }: EmitOptions = {}): void {
+    this.assertAlive();
+    const previous = this.store.get().search;
+    this.store.setSearch(value);
+    const changed = previous !== this.store.get().search;
+    this.afterSet(false);
+    if (emit && changed) {
+      this.announce(this.store.get().search ? this.messages.searchApplied : this.messages.searchCleared);
+      this.notify({ reason: 'search' });
+    }
+  }
   private afterSet(emit: boolean): void {
     const hadFocus = this.root.contains(this.doc.activeElement);
     this.close(false);
+    if (this.quickSearchFields.length) this.input.value = this.store.get().search ?? '';
     this.renderChips();
     if (hadFocus) this.focusWithoutOpening(this.input);
     if (emit) this.notify({ reason: 'set' });
   }
   clear({ emit = true }: EmitOptions = {}): void {
     this.assertAlive();
-    const changed = this.store.get().filters.length > 0;
+    const state = this.store.get();
+    const changed = state.filters.length > 0 || state.search !== undefined;
     this.store.clear();
     this.close(false);
+    this.input.value = '';
     this.renderChips();
     this.focusWithoutOpening(this.input);
     if (emit && changed) { this.announce(this.messages.filtersCleared); this.notify({ reason: 'clear' }); }
   }
-  focus(): void { this.assertAlive(); this.input.focus(); if (!this.draft) this.beginAdd(); }
+  focus(): void { this.assertAlive(); this.input.focus(); if (!this.quickSearchFields.length && !this.draft) this.beginAdd(); }
   destroy(): void {
     if (this.dead) return;
     this.close(false);
@@ -242,7 +272,7 @@ export class Siftbar {
       chip.append(edit, remove);
       this.chips.append(chip);
     });
-    this.clearButton.hidden = !filters.length;
+    this.clearButton.hidden = !filters.length && !this.store.get().search;
   }
   private remove(id: string): void {
     const filters = this.store.get().filters;
@@ -259,7 +289,7 @@ export class Siftbar {
   }
   private beginAdd(): void {
     this.draft = {};
-    this.openingControl = this.input;
+    this.openingControl = this.addControl;
     this.step = 'field';
     this.renderFieldPicker();
     this.show();
@@ -286,8 +316,10 @@ export class Siftbar {
       this.combo.setAttribute('aria-expanded', 'false');
       this.combo.removeAttribute('aria-activedescendant');
     }
-    this.input.setAttribute('aria-expanded', 'false');
-    this.input.removeAttribute('aria-activedescendant');
+    if (!this.quickSearchFields.length) {
+      this.input.setAttribute('aria-expanded', 'false');
+      this.input.removeAttribute('aria-activedescendant');
+    }
     this.popup.replaceChildren();
     this.popup.removeAttribute('role');
     this.popup.removeAttribute('aria-label');
@@ -390,8 +422,13 @@ export class Siftbar {
     this.step = 'field';
     this.popup.dataset.step = 'field';
     this.heading(this.messages.chooseField);
-    this.createList(this.input, this.messages.fieldsLabel);
-    this.renderFieldChoices(this.input.value);
+    const input = this.quickSearchFields.length ? this.pickerInput(this.messages.field, this.options.placeholder ?? this.messages.placeholder) : this.input;
+    if (input !== this.input) {
+      input.addEventListener('input', () => this.renderFieldChoices(input.value), { signal: this.contentAbort!.signal });
+      this.focusSoon(input);
+    }
+    this.createList(input, this.messages.fieldsLabel);
+    this.renderFieldChoices(input.value);
   }
   private renderFieldChoices(query: string): void {
     const q = query.toLocaleLowerCase();
@@ -404,7 +441,7 @@ export class Siftbar {
     this.valueTouched = false;
     this.draft = { field: field.key, operator, editId: this.draft.editId,
       value: noValue(operator) ? null : field.type === 'boolean' ? true : undefined };
-    this.input.value = '';
+    if (!this.quickSearchFields.length) this.input.value = '';
     this.renderValueEditor(focus);
   }
   private operatorChoices(field: Field): OperatorChoice[] {
@@ -646,7 +683,11 @@ export class Siftbar {
   }
   private onKey(event: KeyboardEvent): void {
     if (event.isComposing || this.composing || event.keyCode === 229 || event.defaultPrevented) return;
-    if (event.target === this.input && !this.draft && ['Enter', 'ArrowDown', 'ArrowUp'].includes(event.key)) {
+    if (this.quickSearchFields.length && event.target === this.input) {
+      if (event.key === 'Enter') { event.preventDefault(); this.setSearch(this.input.value.trim()); return; }
+      if (event.key === 'Escape') { event.preventDefault(); this.input.value = this.store.get().search ?? ''; return; }
+    }
+    if (!this.quickSearchFields.length && event.target === this.input && !this.draft && ['Enter', 'ArrowDown', 'ArrowUp'].includes(event.key)) {
       event.preventDefault(); this.beginAdd(); return;
     }
     if (event.key === 'Escape' && this.draft) {
@@ -675,7 +716,7 @@ export class Siftbar {
     // No-match combobox Enter must not submit an enclosing form.
     if (event.key === 'Enter' && event.target === this.combo) { event.preventDefault(); return; }
     if (event.key === 'Enter' && event.target === this.input) { event.preventDefault(); return; }
-    if (event.key === 'Backspace' && event.target === this.input && this.input.value === '') {
+    if (event.key === 'Backspace' && event.target === this.input && this.input.value === '' && !this.store.get().search) {
       const filters = this.store.get().filters;
       if (filters.length) {
         event.preventDefault();
@@ -748,9 +789,11 @@ export class Siftbar {
     this.stopPositioning = undefined;
     if (typeof this.popup.hidePopover === 'function' && this.popup.matches(':popover-open')) this.popup.hidePopover();
     this.popup.hidden = true;
-    this.input.setAttribute('aria-expanded', 'false');
-    this.input.removeAttribute('aria-activedescendant');
-    this.input.value = '';
+    if (!this.quickSearchFields.length) {
+      this.input.setAttribute('aria-expanded', 'false');
+      this.input.removeAttribute('aria-activedescendant');
+      this.input.value = '';
+    }
     const opener = this.openingControl;
     this.draft = null;
     this.pendingFocus = undefined;

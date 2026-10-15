@@ -5,7 +5,7 @@ export type OperatorId = 'eq' | 'neq' | 'contains' | 'not_contains' | 'starts_wi
 export type FilterValue = string | number | boolean | null | string[] | [number, number];
 export interface FilterCondition { field: string; operator: OperatorId; value: FilterValue }
 export interface Filter extends FilterCondition { id: string }
-export interface FilterState { version: 1; combinator: 'and'; filters: Filter[] }
+export interface FilterState { version: 1; combinator: 'and'; filters: Filter[]; search?: string }
 export interface EnumOption { value: string; label: string }
 interface BaseField {
   key: string;
@@ -27,13 +27,18 @@ export interface DateField extends BaseField { type: 'date' }
 export interface BooleanField extends BaseField { type: 'boolean' }
 export interface EnumField extends BaseField { type: 'enum'; options: readonly EnumOption[] }
 export type Field = TextField | NumberField | DateField | BooleanField | EnumField;
-export type ChangeReason = 'add' | 'edit' | 'remove' | 'clear' | 'set';
+export type ChangeReason = 'add' | 'edit' | 'remove' | 'clear' | 'set' | 'search';
 export interface ChangeDetail { reason: ChangeReason; filterId?: string }
 export interface ChangeEventDetail extends ChangeDetail { state: FilterState }
 export interface SiftbarMessages {
   label: string;
   placeholder: string;
   addFilterLabel: string;
+  addFilter: string;
+  quickSearchLabel: string;
+  quickSearchPlaceholder: string;
+  searchApplied: string;
+  searchCleared: string;
   clear: string;
   clearLabel: string;
   chooseField: string;
@@ -100,6 +105,8 @@ export type SiftbarMessageOverrides = Partial<Omit<SiftbarMessages, 'operators' 
 };
 export interface SiftbarOptions {
   fields: readonly Field[];
+  /** Opt-in plain-text search. Host applies OR across these text fields, AND with filters. */
+  quickSearchFields?: readonly string[];
   messages?: SiftbarMessageOverrides;
   label?: string;
   placeholder?: string;

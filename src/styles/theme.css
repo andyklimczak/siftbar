@@ -40,8 +40,8 @@
 :where(.siftbar__bar) { padding: var(--siftbar-padding); border: 1px solid var(--siftbar-border); border-radius: var(--siftbar-radius); background: var(--siftbar-surface); min-height: 46px; }
 :where(.siftbar__bar:focus-within) { border-color: var(--siftbar-focus-color); }
 :where(.siftbar__icon) { color: var(--siftbar-muted); font-size: 24px; line-height: 1; padding-inline: 4px; }
-:where(.siftbar__add) { background: transparent; border: 0; padding: 5px; border-radius: 4px; }
-:where(.siftbar__add::placeholder) { color: var(--siftbar-muted); opacity: 1; }
+:where(.siftbar__add, .siftbar__search) { background: transparent; border: 0; padding: 5px; border-radius: 4px; }
+:where(.siftbar__add::placeholder, .siftbar__search::placeholder) { color: var(--siftbar-muted); opacity: 1; }
 :where(.siftbar__chip) { border-radius: var(--siftbar-chip-radius); background: var(--siftbar-chip-bg); color: var(--siftbar-chip-text); }
 :where(.siftbar__chip-edit, .siftbar__chip-remove) { border: 0; background: transparent; padding: 5px 8px; border-radius: var(--siftbar-chip-radius); }
 :where(.siftbar__chip-remove) { padding-inline: 7px; font-size: 18px; line-height: 1.5; }

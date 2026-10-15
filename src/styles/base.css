@@ -7,7 +7,8 @@
 :where(.siftbar__chip) { display: inline-flex; align-items: center; min-width: 0; max-width: 100%; }
 :where(.siftbar__chip-edit) { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 100%; }
 :where(.siftbar__chip-remove) { flex-shrink: 0; }
-:where(.siftbar__add) { flex: 1 1 120px; min-width: 80px; max-width: 100%; }
+:where(.siftbar__add, .siftbar__search) { flex: 1 1 120px; min-width: 80px; max-width: 100%; }
+:where(button.siftbar__add) { flex: 0 0 auto; min-width: 0; }
 :where(.siftbar__popup) { position: fixed; inset: auto; margin: 0; width: var(--siftbar-popup-width, 380px); overflow: auto; z-index: var(--siftbar-popup-z, 1000); container-type: inline-size; }
 :where(.siftbar__popup[data-step="value"]) { width: var(--siftbar-editor-width, var(--siftbar-popup-width, 720px)); }
 :where(.siftbar__editor-row) { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 2fr); gap: var(--siftbar-gap, 6px); align-items: start; }

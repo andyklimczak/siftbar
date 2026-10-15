@@ -18,8 +18,8 @@ a GitHub Pages deployment or npm publication.
 Command: `BROWSERS=chromium,firefox npm run check`
 
 - TypeScript and ESLint pass.
-- 122 unit tests pass.
-- 132 browser tests pass (66 scenarios per engine), including axe scans.
+- 141 unit tests pass.
+- 146 browser tests pass (73 scenarios per engine), including axe scans.
 - Real npm pack extraction, DOM-free Node import, and a separate TypeScript consumer
   verify the package exports, styles, licenses, declarations, preset API, message
   reference, and message override types.
@@ -45,6 +45,14 @@ translated controls/dialogs, number constraints/ranges, boolean/no-value chips,
 enum statuses/removal, announcements, unchanged typed state, untouched hosts on
 invalid configuration, and a translated enum editor axe scan. Native date controls
 and human screen-reader pronunciation remain outside that localization claim.
+
+Quick-search checks cover opt-in schema/state validation, field allowlists and
+copying, unchanged filter-only state, atomic rejection, independent search/chip
+updates, presets, clearing, Enter/IME guards, escaped values, callback/event payloads,
+no enclosing form submission, silent restoration and destroy/remount. Chromium and
+Firefox also cover the separate keyboard field picker, localized quick-search
+controls, mobile layout, and an axe scan. Application-specific OR/AND query semantics
+and joins remain the host's responsibility, not a core evaluator.
 
 ## Examples
 

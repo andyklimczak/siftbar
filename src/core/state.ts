@@ -6,10 +6,10 @@ export class StateStore {
   private state: FilterState = { version: 1, combinator: 'and', filters: [] };
   private nextId = 1;
   private issued = new Set<string>();
-  constructor(private fields: readonly Field[]) {}
+  constructor(private fields: readonly Field[], private quickSearchFields: readonly string[] = []) {}
   get(): FilterState { return copyState(this.state); }
   set(input: unknown): void {
-    const valid = validateState(input, this.fields);
+    const valid = validateState(input, this.fields, this.quickSearchFields);
     this.state = valid;
     valid.filters.forEach(filter => this.issued.add(filter.id));
   }
@@ -28,7 +28,13 @@ export class StateStore {
       if (!(error instanceof SiftbarValidationError)) throw error;
       throw new SiftbarValidationError(error.issues.map(issue => ({ ...issue, path: issue.path.replace(/^state\./, '') })));
     }
-    this.set({ ...valid, filters: valid.filters.map(filter => ({ ...filter, id: this.freshId() })) });
+    this.set({ ...this.get(), filters: valid.filters.map(filter => ({ ...filter, id: this.freshId() })) });
+  }
+  setSearch(value: string): void {
+    const state = this.get();
+    if (value === '') delete state.search;
+    else state.search = value;
+    this.set(state);
   }
   freshId(): string {
     let id: string;
@@ -43,7 +49,7 @@ export class StateStore {
       if (index < 0) throw new Error('The edited filter no longer exists.');
       filters[index] = { ...filter, id: editId };
     } else filters.push(filter);
-    this.set({ version: 1, combinator: 'and', filters });
+    this.set({ ...this.get(), filters });
   }
   remove(id: string): void {
     this.set({ ...this.get(), filters: this.state.filters.filter(filter => filter.id !== id) });

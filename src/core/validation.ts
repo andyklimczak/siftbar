@@ -101,6 +101,19 @@ export function validateSchema(input: unknown): Field[] {
   });
   return fields;
 }
+export function validateQuickSearchFields(input: unknown, fields: readonly Field[]): string[] {
+  if (input === undefined) return [];
+  if (!Array.isArray(input)) fail('options.quickSearchFields', 'Expected a field key array.');
+  const seen = new Set<string>();
+  return Array.from(input, (key: unknown, index) => {
+    const path = `options.quickSearchFields[${index}]`;
+    const field = fields.find(field => field.key === key);
+    if (!field || field.type !== 'text' || !operatorsFor(field).includes('contains')) fail(path, 'Expected a text field supporting contains.');
+    if (seen.has(field.key)) fail(path, 'Field keys must be unique.', 'duplicate');
+    seen.add(field.key);
+    return field.key;
+  });
+}
 export function isCalendarDate(value: unknown): value is string {
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const [year, month, day] = value.split('-').map(Number);
@@ -145,11 +158,16 @@ export function valueError(field: Field, operator: OperatorId, value: unknown, m
     }
   }
 }
-export function validateState(input: unknown, fields: readonly Field[]): FilterState {
+export function validateState(input: unknown, fields: readonly Field[], quickSearchFields: readonly string[] = []): FilterState {
+  quickSearchFields = validateQuickSearchFields(quickSearchFields, fields);
   const issues: ValidationIssue[] = [];
   const add = (path: string, message: string, code = 'invalid') => issues.push({ path, message, code });
   if (!isRecord(input)) fail('state', 'Expected a state object.');
-  for (const key of Object.keys(input)) if (!['version', 'combinator', 'filters'].includes(key)) add(`state.${key}`, 'Unexpected property.', 'unknown');
+  for (const key of Object.keys(input)) if (!['version', 'combinator', 'filters', 'search'].includes(key)) add(`state.${key}`, 'Unexpected property.', 'unknown');
+  if (Object.hasOwn(input, 'search')) {
+    if (!quickSearchFields.length) add('state.search', 'Quick search is not enabled.');
+    else if (typeof input.search !== 'string' || !input.search.trim().length) add('state.search', 'Expected nonempty search text; omit search to clear it.');
+  }
   if (input.version !== 1) add('state.version', 'Only version 1 is supported.');
   if (input.combinator !== 'and') add('state.combinator', 'Only AND is supported.');
   if (!Array.isArray(input.filters)) add('state.filters', 'Expected an array.');
@@ -174,7 +192,7 @@ export function validateState(input: unknown, fields: readonly Field[]): FilterS
   }
   if (issues.length) throw new SiftbarValidationError(issues);
   const state = input as unknown as FilterState;
-  return { version: 1, combinator: 'and', filters: state.filters.map(filter => ({
+  return { version: 1, combinator: 'and', ...(state.search !== undefined ? { search: state.search } : {}), filters: state.filters.map(filter => ({
     id: filter.id, field: filter.field, operator: filter.operator,
     value: copyValue(filter.value),
   })) };
@@ -183,5 +201,5 @@ export function copyValue(value: FilterValue): FilterValue {
   return Array.isArray(value) ? [...value] as FilterValue : value;
 }
 export function copyState(state: FilterState): FilterState {
-  return { version: 1, combinator: 'and', filters: state.filters.map(filter => ({ ...filter, value: copyValue(filter.value) })) };
+  return { version: 1, combinator: 'and', ...(state.search !== undefined ? { search: state.search } : {}), filters: state.filters.map(filter => ({ ...filter, value: copyValue(filter.value) })) };
 }

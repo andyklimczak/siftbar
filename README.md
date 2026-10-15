@@ -142,10 +142,82 @@ intentionally want a silent update. Invalid conditions preserve saved filters an
 the active draft; explicit `id` properties are rejected. `FilterCondition` is exported
 for TypeScript callers. `clear()` emits when there are saved filters to remove.
 
+## Quick search (opt-in)
+
+Configure `quickSearchFields` to allow typing or pasting an opaque value directly
+into the bar, without selecting a field/operator or creating a chip:
+
+```js
+const quickSearchFields = ['email', 'user_id'];
+const filters = new Siftbar(document.querySelector('#filters'), {
+  fields: [
+    { key: 'email', label: 'Email', type: 'text' },
+    { key: 'user_id', label: 'User ID', type: 'text', operators: ['eq', 'contains'] },
+  ],
+  quickSearchFields,
+  onChange: state => updateResults(state),
+});
+```
+
+Press **Enter** to commit. The input continues to show only the value (for example,
+`andy@test.com` or a UUID). Typing, pasting, and blur alone do not emit changes;
+IME Enter does not commit. Escape restores committed text. **Add filter** opens a
+separate field picker within the same bar, so chips and quick search can coexist.
+
+The host applies `state.search` as case-insensitive literal contains matching with
+**OR across its configured quick-search fields**, then **AND with every chip**:
+`(email contains search OR user_id contains search) AND chip1 AND chip2`.
+The entire search is one string, not tokens, a query language, or a filter condition.
+Siftbar never evaluates data or generates requests/SQL; the server must validate
+state and independently allowlist the fields. The configured field list is not
+sent in saved state and must also be known to the results handler/backend.
+
+`quickSearchFields` must contain unique known text fields supporting `contains`.
+Omit it or pass `[]` for the original filter-only UI and state shape. The list is
+copied and validated before mounting. Labels, placeholder, button, and announcements
+are configurable through `messages` (see [the catalog](docs/messages.md)).
+
+Committed quick search adds an **optional** `search` string to version-1 state:
+
+```json
+{"version":1,"combinator":"and","filters":[],"search":"andy@test.com"}
+```
+
+Omit `search` when empty. Older states without it still restore unchanged; older
+Siftbar/server versions will reject states containing it, so upgrade consumers
+before enabling this opt-in feature. `validateState(state, fields, quickSearchFields)`
+accepts the configured list as its optional third argument; without it, search
+state is rejected. Restoration never infers enabled search from untrusted state.
+
+`setSearch(text, { emit = true })` commits programmatically and emits reason `search`
+only when the saved query changes. Programmatic nonempty strings are preserved
+exactly; the Enter interaction trims outer whitespace. Empty text/empty Enter clears
+only search. `setFilters` replaces chips but retains committed search. `clear()`
+clears both. `getState`, `setState`, snapshots, and events include committed search;
+unsubmitted text is a draft and is not persisted. `focus()` focuses the plain input
+instead of opening a picker when this feature is enabled.
+
+### Related records and joins
+
+Field keys are opaque identifiers, not SQL paths. A related-record filter needs
+no special Siftbar API:
+
+```js
+const ownerFields = [
+  { key: 'owner_id', label: 'Owner ID', type: 'text', operators: ['eq', 'contains'] },
+  { key: 'owner_name', label: 'Owner name', type: 'text' },
+];
+```
+
+The application maps `owner_id` to its foreign-key column and `owner_name` to an
+allowlisted join or subquery. Keep table names, association traversal, authorization,
+query parameterization, duplicate prevention, and pagination on the server. Do not
+interpret arbitrary client-provided keys as association paths or SQL expressions.
+
 ## Configuration
 
 Options: `fields` (required), `label`, `placeholder`, `theme` (`system`, `light`,
-`dark`), optional `messages`, and optional `onChange(state, detail)`. Configuration is defensively copied.
+`dark`), optional `quickSearchFields`, optional `messages`, and optional `onChange(state, detail)`. Configuration is defensively copied.
 Initialization never emits a change.
 
 Every field has a unique nonempty `key`, nonempty `label`, and a `type`:
@@ -181,7 +253,7 @@ are not supported.
 Text, including whitespace and `""`, is preserved. Empty string is a valid explicit
 text value, not an automatic nullable condition. An untouched blank text draft is
 not auto-saved; type and clear the input, or press Enter, to explicitly save `""`.
-Field-search input is navigation, not a free-text filter.
+Without `quickSearchFields`, the field-search input is navigation, not a free-text filter.
 
 Enum identifiers are strings, independent from display labels. Single choices store
 one identifier. Multi-choices store a nonempty, duplicate-free array with order
@@ -312,7 +384,7 @@ host.addEventListener('siftbar:change', ({ detail }) => {
 });
 ```
 
-Reasons: `add`, `edit`, `remove`, `clear`, `set`. `filterId` accompanies individual
+Reasons: `add`, `edit`, `remove`, `clear`, `set`, `search`. `filterId` accompanies individual
 condition changes. The DOM event is dispatched before `onChange`; callback and event
 receive separate snapshots of the same transition, isolated from internal state.
 Multiple listeners on the same DOM event naturally share its event payload.
@@ -379,7 +451,7 @@ its width is overridden.
 
 Import `siftbar/base.css` **instead** for a complete custom skin. Stable hooks:
 `.siftbar`, `.siftbar__bar`, `.siftbar__chip`, `.siftbar__chip-edit`,
-`.siftbar__chip-remove`, `.siftbar__add`, `.siftbar__clear`, `.siftbar__popup`,
+`.siftbar__chip-remove`, `.siftbar__add`, `.siftbar__search`, `.siftbar__clear`, `.siftbar__popup`,
 `.siftbar__heading`, `.siftbar__context`, `.siftbar__context-button`,
 `.siftbar__editor-row`, `.siftbar__editor-row--no-value`, `.siftbar__field-select`,
 `.siftbar__operator-select`, `.siftbar__value-cell`,
