@@ -1,9 +1,10 @@
 import { autoUpdate, computePosition, flip, shift, size, offset } from '@floating-ui/dom';
 import { filterLabel } from '../core/format.js';
+import { formatMessage } from '../core/messages.js';
 import { noValue, operatorLabel, operatorsFor } from '../core/operators.js';
 import { StateStore } from '../core/state.js';
-import { copyState, copyValue, SiftbarValidationError, validateSchema, valueError } from '../core/validation.js';
-import type { ChangeDetail, EmitOptions, Field, Filter, FilterCondition, FilterState, FilterValue, OperatorId, SiftbarOptions, ValidationIssue } from '../core/types.js';
+import { copyState, copyValue, SiftbarValidationError, validateMessages, validateSchema, valueError } from '../core/validation.js';
+import type { ChangeDetail, EmitOptions, Field, Filter, FilterCondition, FilterState, FilterValue, OperatorId, SiftbarMessages, SiftbarOptions, ValidationIssue } from '../core/types.js';
 
 type Step = 'field' | 'value';
 type EditorFocus = 'value' | 'field' | 'operator';
@@ -19,6 +20,7 @@ export class Siftbar {
   private readonly fields: Field[];
   private readonly store: StateStore;
   private readonly options: SiftbarOptions;
+  private readonly messages: SiftbarMessages;
   private readonly uid: string;
   private readonly root: HTMLDivElement;
   private readonly chips: HTMLDivElement;
@@ -64,8 +66,9 @@ export class Siftbar {
     if (options.theme !== undefined && !['system', 'light', 'dark'].includes(options.theme)) invalid('theme', 'Expected system, light, or dark.');
     if (options.onChange !== undefined && typeof options.onChange !== 'function') invalid('onChange', 'Expected a function.');
     if (issues.length) throw new SiftbarValidationError(issues);
+    this.messages = validateMessages(options.messages);
     this.doc = host.ownerDocument;
-    this.options = { ...options, fields: this.fields };
+    this.options = { ...options, fields: this.fields, messages: this.messages };
     this.store = new StateStore(this.fields);
     let uid: string;
     do { uid = `siftbar-${++instanceSequence}`; } while (this.doc.querySelector(`[id^="${uid}-"]`));
@@ -75,18 +78,19 @@ export class Siftbar {
     this.root = this.element('div', 'siftbar');
     this.root.dataset.theme = options.theme ?? 'system';
     this.root.setAttribute('role', 'group');
-    this.root.setAttribute('aria-label', options.label ?? 'Filters');
+    const label = options.label ?? this.messages.label;
+    this.root.setAttribute('aria-label', label);
     const bar = this.element('div', 'siftbar__bar');
     const icon = this.element('span', 'siftbar__icon', '⌕');
     icon.setAttribute('aria-hidden', 'true');
     this.chips = this.element('div', 'siftbar__chips');
     this.input = this.element('input', 'siftbar__add');
     this.input.type = 'text';
-    this.input.placeholder = options.placeholder ?? 'Add a filter…';
-    this.input.setAttribute('aria-label', `${options.label ?? 'Filters'}: add a filter`);
+    this.input.placeholder = options.placeholder ?? this.messages.placeholder;
+    this.input.setAttribute('aria-label', formatMessage(this.messages.addFilterLabel, { label }));
     this.input.autocomplete = 'off';
-    this.clearButton = this.button('Clear filters', 'siftbar__clear', () => this.clear());
-    this.clearButton.textContent = 'Clear';
+    this.clearButton = this.button(this.messages.clearLabel, 'siftbar__clear', () => this.clear());
+    this.clearButton.textContent = this.messages.clear;
     this.popup = this.element('div', 'siftbar__popup');
     this.popup.id = `${this.uid}-popup`;
     this.popup.setAttribute('popover', 'manual');
@@ -168,7 +172,7 @@ export class Siftbar {
     this.close(false);
     this.renderChips();
     this.focusWithoutOpening(this.input);
-    if (emit && changed) { this.announce('Filters cleared.'); this.notify({ reason: 'clear' }); }
+    if (emit && changed) { this.announce(this.messages.filtersCleared); this.notify({ reason: 'clear' }); }
   }
   focus(): void { this.assertAlive(); this.input.focus(); if (!this.draft) this.beginAdd(); }
   destroy(): void {
@@ -225,14 +229,14 @@ export class Siftbar {
     const filters = this.store.get().filters;
     filters.forEach(filter => {
       const field = this.fields.find(field => field.key === filter.field)!;
-      const label = filterLabel(field, filter);
+      const label = filterLabel(field, filter, this.messages);
       const chip = this.element('span', 'siftbar__chip');
       chip.dataset.filterId = filter.id;
-      const edit = this.button(`Edit ${label}`, 'siftbar__chip-edit', () => this.beginEdit(filter.id, edit), this.chipAbort!.signal);
+      const edit = this.button(formatMessage(this.messages.editFilterLabel, { filter: label }), 'siftbar__chip-edit', () => this.beginEdit(filter.id, edit), this.chipAbort!.signal);
       edit.textContent = label;
       edit.title = label;
       edit.dataset.editId = filter.id;
-      const remove = this.button(`Remove ${label}`, 'siftbar__chip-remove', () => this.remove(filter.id), this.chipAbort!.signal);
+      const remove = this.button(formatMessage(this.messages.removeFilterLabel, { filter: label }), 'siftbar__chip-remove', () => this.remove(filter.id), this.chipAbort!.signal);
       remove.textContent = '×';
       remove.dataset.removeId = filter.id;
       chip.append(edit, remove);
@@ -250,7 +254,7 @@ export class Siftbar {
     this.selectedChip = undefined;
     const edits = this.chips.querySelectorAll<HTMLButtonElement>('[data-edit-id]');
     this.focusWithoutOpening(edits[Math.min(index, edits.length - 1)] ?? this.input);
-    this.announce('Filter removed.');
+    this.announce(this.messages.filterRemoved);
     this.notify({ reason: 'remove', filterId: id });
   }
   private beginAdd(): void {
@@ -340,7 +344,7 @@ export class Siftbar {
         empty.setAttribute('role', 'status');
         this.list!.after(empty);
       }
-      empty.textContent = 'No matches.';
+      empty.textContent = this.messages.noMatches;
     } else {
       this.list!.hidden = false;
       this.popup.querySelector('.siftbar__empty')?.remove();
@@ -385,14 +389,14 @@ export class Siftbar {
     this.resetContent();
     this.step = 'field';
     this.popup.dataset.step = 'field';
-    this.heading('Choose a field');
-    this.createList(this.input, 'Filter fields');
+    this.heading(this.messages.chooseField);
+    this.createList(this.input, this.messages.fieldsLabel);
     this.renderFieldChoices(this.input.value);
   }
   private renderFieldChoices(query: string): void {
     const q = query.toLocaleLowerCase();
     this.drawChoices(this.fields.filter(field => [field.label, ...(field.aliases ?? [])].some(label => label.toLocaleLowerCase().includes(q)))
-      .map(field => ({ key: field.key, label: field.label, hint: field.type, group: field.group, select: () => this.chooseField(field) })));
+      .map(field => ({ key: field.key, label: field.label, hint: this.messages.fieldTypes[field.type], group: field.group, select: () => this.chooseField(field) })));
   }
   private chooseField(field: Field, focus: EditorFocus = 'value'): void {
     if (!this.draft) return;
@@ -405,8 +409,10 @@ export class Siftbar {
   }
   private operatorChoices(field: Field): OperatorChoice[] {
     return operatorsFor(field).flatMap<OperatorChoice>(operator => field.type === 'boolean' && operator === 'eq'
-      ? [true, false].map(value => ({ key: `eq:${value}`, operator, value, label: `${operatorLabel(field, operator)} ${value}` }))
-      : [{ key: operator, operator, label: operatorLabel(field, operator) }]);
+      ? [true, false].map(value => ({ key: `eq:${value}`, operator, value, label: formatMessage(this.messages.booleanOperator, {
+        operator: operatorLabel(field, operator, this.messages.operators), value: value ? this.messages.true : this.messages.false,
+      }) }))
+      : [{ key: operator, operator, label: operatorLabel(field, operator, this.messages.operators) }]);
   }
   private chooseOperator(operator: OperatorId, booleanValue?: boolean): void {
     if (!this.draft) return;
@@ -414,7 +420,7 @@ export class Siftbar {
     const old = this.draft.value;
     this.draft.operator = operator;
     this.draft.value = noValue(operator) ? null : booleanValue !== undefined ? booleanValue
-      : old !== undefined && !valueError(this.field()!, operator, old) ? old : undefined;
+      : old !== undefined && !valueError(this.field()!, operator, old, this.messages) ? old : undefined;
     this.renderValueEditor('operator');
   }
   private renderValueEditor(focus: EditorFocus = 'value'): void {
@@ -424,14 +430,14 @@ export class Siftbar {
     this.step = 'value';
     this.popup.dataset.step = 'value';
     this.popup.setAttribute('role', 'dialog');
-    this.popup.setAttribute('aria-label', `${this.draft!.editId ? 'Edit' : 'Add'} ${field.label} filter`);
-    const instructions = this.element('p', 'siftbar__sr', 'Valid filters are saved when you click or tab away. Press Escape to cancel.');
+    this.popup.setAttribute('aria-label', formatMessage(this.draft!.editId ? this.messages.editDialogLabel : this.messages.addDialogLabel, { field: field.label }));
+    const instructions = this.element('p', 'siftbar__sr', this.messages.instructions);
     instructions.id = `${this.uid}-instructions`;
     this.popup.setAttribute('aria-describedby', instructions.id);
     this.popup.append(instructions);
     const editor = this.element('div', 'siftbar__editor-row');
     const context = this.element('div', 'siftbar__context');
-    const fieldLabel = this.element('label', 'siftbar__label', 'Field');
+    const fieldLabel = this.element('label', 'siftbar__label', this.messages.field);
     const fieldSelect = this.element('select', 'siftbar__context-button siftbar__field-select');
     this.fields.forEach(candidate => {
       const option = this.element('option', '', candidate.label);
@@ -446,7 +452,7 @@ export class Siftbar {
     }, { signal: this.contentAbort!.signal });
     this.fieldSelect = fieldSelect;
     fieldLabel.append(fieldSelect);
-    const operatorLabelElement = this.element('label', 'siftbar__label', 'Operator');
+    const operatorLabelElement = this.element('label', 'siftbar__label', this.messages.operator);
     const operatorSelect = this.element('select', 'siftbar__context-button siftbar__operator-select');
     const choices = this.operatorChoices(field);
     choices.forEach(choice => {
@@ -475,7 +481,7 @@ export class Siftbar {
       const values = range && Array.isArray(this.draft!.value) ? this.draft!.value : [this.draft!.value];
       const row = this.element('div', 'siftbar__values');
       for (let i = 0; i < (range ? 2 : 1); i++) {
-        const label = this.element('label', 'siftbar__label', range ? (i === 0 ? 'From (inclusive)' : 'To (inclusive)') : 'Value');
+        const label = this.element('label', 'siftbar__label', range ? (i === 0 ? this.messages.from : this.messages.to) : this.messages.value);
         const input = this.element('input', 'siftbar__value-input');
         input.type = field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : 'text';
         input.autocomplete = 'off';
@@ -492,7 +498,7 @@ export class Siftbar {
         row.append(label);
       }
       valueCell.append(row);
-      if (field.type === 'number' && field.suffix) valueCell.append(this.element('p', 'siftbar__help', `Values in ${field.suffix}.`));
+      if (field.type === 'number' && field.suffix) valueCell.append(this.element('p', 'siftbar__help', formatMessage(this.messages.valuesIn, { suffix: field.suffix })));
     }
     this.error = this.element('div', 'siftbar__error');
     this.error.id = `${this.uid}-error`;
@@ -509,15 +515,15 @@ export class Siftbar {
   private renderEnumEditor(field: Extract<Field, { type: 'enum' }>, operator: OperatorId, parent: HTMLElement): void {
     const multi = operator === 'any_of' || operator === 'none_of';
     this.multiValues = Array.isArray(this.draft!.value) ? [...this.draft!.value] as string[] : [];
-    const label = this.element('label', 'siftbar__label', 'Value');
+    const label = this.element('label', 'siftbar__label', this.messages.value);
     const control = this.element('div', 'siftbar__enum-control');
     const tokens = this.element('div', 'siftbar__enum-tokens');
     const combo = this.element('input', 'siftbar__picker-input');
     combo.type = 'text';
     combo.autocomplete = 'off';
-    combo.placeholder = 'Search options…';
+    combo.placeholder = this.messages.searchOptions;
     combo.id = `${this.uid}-enum-value`;
-    combo.setAttribute('aria-label', multi ? 'Choose values' : 'Choose a value');
+    combo.setAttribute('aria-label', multi ? this.messages.chooseValues : this.messages.chooseValue);
     label.htmlFor = combo.id;
     this.setupCombo(combo);
     control.append(tokens, combo);
@@ -526,10 +532,12 @@ export class Siftbar {
     selection.setAttribute('role', 'status');
     parent.append(label, control, dropdown, selection);
     if (!multi && typeof this.draft!.value === 'string') combo.value = field.options.find(option => option.value === this.draft!.value)?.label ?? '';
-    this.createList(combo, `${field.label} values`, multi, dropdown);
+    this.createList(combo, formatMessage(this.messages.valuesLabel, { field: field.label }), multi, dropdown);
     const render = (preserve = false) => {
       const selected = multi ? this.multiValues : this.draft!.value === undefined ? [] : [this.draft!.value as string];
-      selection.textContent = selected.length ? `Selected: ${selected.map(value => field.options.find(option => option.value === value)?.label).join(', ')}` : 'No values selected.';
+      selection.textContent = selected.length ? formatMessage(this.messages.selectedValues, {
+        values: selected.map(value => field.options.find(option => option.value === value)?.label).join(this.messages.listSeparator),
+      }) : this.messages.noValuesSelected;
       this.drawChoices(field.options.filter(option => option.label.toLocaleLowerCase().includes(combo.value.toLocaleLowerCase()))
         .map(option => ({ key: option.value, label: option.label, selected: selected.includes(option.value),
           hint: selected.includes(option.value) ? '✓' : undefined,
@@ -551,14 +559,14 @@ export class Siftbar {
           name.title = text;
           const remove = this.element('button', 'siftbar__enum-chip-remove', '×');
           remove.type = 'button';
-          remove.setAttribute('aria-label', `Remove ${text} from selected values`);
+          remove.setAttribute('aria-label', formatMessage(this.messages.removeSelectedValueLabel, { value: text }));
           remove.addEventListener('click', () => {
             this.multiValues = this.multiValues.filter(item => item !== value);
             this.draft!.value = [...this.multiValues];
             this.hideError();
             render(true);
             combo.focus(); // Keep the draft open when the focused token disappears.
-            this.announce(`${text} removed from selected values.`);
+            this.announce(formatMessage(this.messages.selectedValueRemoved, { value: text }));
           }, { signal: this.choiceAbort!.signal });
           token.append(name, remove);
           tokens.append(token);
@@ -586,7 +594,7 @@ export class Siftbar {
   private captureValue(): void {
     if (this.step !== 'value' || !this.draft) return;
     const value = this.readValue();
-    this.draft.value = valueError(this.field()!, this.draft.operator!, value) ? undefined : value as FilterValue;
+    this.draft.value = valueError(this.field()!, this.draft.operator!, value, this.messages) ? undefined : value as FilterValue;
   }
   private hideError(): void {
     if (this.error) this.error.hidden = true;
@@ -596,13 +604,13 @@ export class Siftbar {
   private finishDraft(): void {
     if (!this.draft) return;
     if (this.step === 'value' && !this.composing && this.commit(false)) return;
-    if (this.step === 'value') this.announce('Incomplete or invalid filter discarded; saved filters unchanged.');
+    if (this.step === 'value') this.announce(this.messages.draftDiscarded);
     this.close(false);
   }
   private commit(restoreFocus = true): boolean {
     if (!this.draft?.field || !this.draft.operator) return false;
     const value = this.step === 'value' ? this.readValue() : this.draft.value;
-    const message = valueError(this.field()!, this.draft.operator, value);
+    const message = valueError(this.field()!, this.draft.operator, value, this.messages);
     if (message) {
       if (!this.error) this.renderValueEditor();
       this.error!.textContent = message;
@@ -616,7 +624,7 @@ export class Siftbar {
     try { this.store.save(filter, editId); }
     catch (error) {
       if (!(error instanceof SiftbarValidationError)) throw error;
-      this.announce(error.message); return false;
+      this.announce(this.messages.saveError); return false;
     }
     const focused = this.doc.activeElement as HTMLElement | null;
     const focusedEdit = focused?.dataset.editId;
@@ -630,7 +638,9 @@ export class Siftbar {
         focusedEdit ? button.dataset.editId === focusedEdit : button.dataset.removeId === focusedRemove);
       if (replacement) this.focusWithoutOpening(replacement);
     }
-    this.announce(`Filter ${editId ? 'updated' : 'added'}: ${filterLabel(this.fields.find(field => field.key === filter.field)!, filter)}.`);
+    this.announce(formatMessage(editId ? this.messages.filterUpdated : this.messages.filterAdded, {
+      filter: filterLabel(this.fields.find(field => field.key === filter.field)!, filter, this.messages),
+    }));
     this.notify({ reason: editId ? 'edit' : 'add', filterId: filter.id });
     return true;
   }

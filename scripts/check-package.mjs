@@ -9,18 +9,29 @@ const temporary = await mkdtemp(join(tmpdir(), 'siftbar-package-'));
 try {
   const packed = JSON.parse(execFileSync('npm', ['pack', '--ignore-scripts', '--json', '--pack-destination', temporary], { encoding: 'utf8' }))[0];
   const files = packed.files.map(file => file.path);
-  for (const required of ['dist/siftbar.js', 'dist/siftbar.browser.js', 'dist/styles.css', 'dist/base.css', 'dist/types/index.d.ts', 'dist/LICENSE-floating-ui-dom', 'LICENSE']) assert(files.includes(required), `Missing ${required}`);
-  assert(files.every(file => file.startsWith('dist/') || ['README.md', 'LICENSE', 'package.json'].includes(file)), 'Development-only files entered the package.');
+  for (const required of ['dist/siftbar.js', 'dist/siftbar.browser.js', 'dist/styles.css', 'dist/base.css', 'dist/types/index.d.ts', 'dist/LICENSE-floating-ui-dom', 'docs/messages.md', 'LICENSE']) assert(files.includes(required), `Missing ${required}`);
+  assert(files.every(file => file.startsWith('dist/') || ['README.md', 'docs/messages.md', 'LICENSE', 'package.json'].includes(file)), 'Development-only files entered the package.');
   const install = join(temporary, 'node_modules', 'siftbar');
   await mkdir(install, { recursive: true });
   execFileSync('tar', ['-xzf', join(temporary, packed.filename), '--strip-components=1', '-C', install]);
   const library = await import(pathToFileURL(join(install, 'dist/siftbar.js')).href);
   assert.equal(typeof library.Siftbar, 'function');
+  assert.equal(library.DEFAULT_MESSAGES.clear, 'Clear');
+  assert.equal(library.DEFAULT_MESSAGES.validation.minimum, 'Minimum is {min}.');
   assert.equal(typeof globalThis.document, 'undefined');
   const consumer = join(temporary, 'consumer.mts');
-  await writeFile(consumer, `import { Siftbar, type FilterCondition, type FilterState, type Field } from 'siftbar';
+  await writeFile(consumer, `import { Siftbar, DEFAULT_MESSAGES, type FilterCondition, type FilterState, type Field, type SiftbarMessages, type SiftbarMessageOverrides } from 'siftbar';
 const fields: Field[] = [{ key: 'n', label: 'Number', type: 'number', integer: true }];
-const instance = new Siftbar(document.createElement('div'), { fields });
+const defaults: Readonly<SiftbarMessages> = DEFAULT_MESSAGES;
+const messages: SiftbarMessageOverrides = { clear: 'Limpiar', operators: { eq: 'es' }, validation: { minimum: 'Mínimo: {min}' } };
+const instance = new Siftbar(document.createElement('div'), { fields, messages });
+// @ts-expect-error unknown message key must be rejected by declarations
+const badMessage: SiftbarMessageOverrides = { unknown: 'x' };
+// @ts-expect-error messages must be plain strings, not callbacks
+const badTemplate: SiftbarMessageOverrides = { filterAdded: () => 'x' };
+// @ts-expect-error nested operator IDs remain constrained
+const badOperator: SiftbarMessageOverrides = { operators: { unknown: 'x' } };
+void defaults; void badMessage; void badTemplate; void badOperator;
 const state: FilterState = instance.getState();
 instance.setState(state);
 const preset: readonly FilterCondition[] = [{ field: 'n', operator: 'gte', value: 32 }];

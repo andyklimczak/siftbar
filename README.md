@@ -145,7 +145,7 @@ for TypeScript callers. `clear()` emits when there are saved filters to remove.
 ## Configuration
 
 Options: `fields` (required), `label`, `placeholder`, `theme` (`system`, `light`,
-`dark`), and optional `onChange(state, detail)`. Configuration is defensively copied.
+`dark`), optional `messages`, and optional `onChange(state, detail)`. Configuration is defensively copied.
 Initialization never emits a change.
 
 Every field has a unique nonempty `key`, nonempty `label`, and a `type`:
@@ -206,6 +206,43 @@ appear as chips inside that control with individually labeled × removal buttons
 Removing values edits the draft; clicking/tabbing away saves a valid selection, while
 Escape or an empty/invalid selection preserves the previously saved filter.
 
+## Messages and localization
+
+Pass a plain `messages` mapping to override built-in text, including controls,
+validation feedback, operator/type labels, and accessibility announcements:
+
+```js
+const filters = new Siftbar(document.querySelector('#filters'), {
+  fields: [{ key: 'name', label: 'Nombre', type: 'text' }],
+  messages: {
+    label: 'Filtros',
+    placeholder: 'Añadir un filtro…',
+    clear: 'Limpiar',
+    clearLabel: 'Limpiar filtros',
+    editFilterLabel: 'Editar {filter}',
+    filterAdded: 'Filtro añadido: {filter}.',
+    operators: { eq: 'es', contains: 'contiene' },
+    fieldTypes: { text: 'texto' },
+    validation: { minimum: 'El mínimo es {min}.' },
+  },
+});
+```
+
+Omitted keys inherit English defaults **one key at a time**, including nested
+mappings. This example is partial; supply the full catalog for a completely
+translated UI. `DEFAULT_MESSAGES`, `SiftbarMessages`, and `SiftbarMessageOverrides`
+are exported for discovering keys and checking TypeScript configuration.
+
+Templates use named parameters such as `{filter}`, interpolated once as plain
+text. No functions, HTML, translation dependency, or locale detection are needed.
+Unknown keys/parameters, empty strings, and invalid values are rejected before
+mounting with a precise `SiftbarValidationError` path. Existing top-level `label`
+and `placeholder` override message defaults; field `operatorLabels` override
+message operator labels. Saved state and event/callback payloads are unchanged.
+Programmer-facing API/configuration diagnostics remain English.
+
+See the [complete message catalog, parameters, and precedence rules](docs/messages.md).
+
 ## Operators
 
 | Field | Operator IDs |
@@ -262,7 +299,7 @@ intact on rejection. Successful clear/set cancels the draft. Snapshots and suppl
 arrays are not mutated. Calling methods other than destroy after destruction throws.
 
 `validateSchema`, `validateState`, `isCalendarDate`, `operatorsFor`,
-`supportedOperators`, and `OPERATOR_LABELS` are also exported. Pass validated schema
+`supportedOperators`, `OPERATOR_LABELS`, and `DEFAULT_MESSAGES` are also exported. Pass validated schema
 from `validateSchema` into `validateState` when using these helpers directly.
 
 ## Events
@@ -405,7 +442,7 @@ layout is illustrative and not a CSP integration test.
 
 `npm run build` emits browser ESM/script files with source maps, declarations, CSS,
 version metadata, and bundled dependency license notices. `npm pack` packages only
-the library artifacts, README, and license; examples/site are not runtime dependencies.
+the library artifacts, README, message reference, and license; examples/site are not runtime dependencies.
 
 `npm run build:site` produces `site-dist/`, including `.nojekyll` and a public
 `license.txt`, with relative URLs working at a domain root or any repository path

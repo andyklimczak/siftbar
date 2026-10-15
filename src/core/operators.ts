@@ -18,8 +18,8 @@ export function supportedOperators(type: FieldType, nullable = false): OperatorI
 export function operatorsFor(field: Field): readonly OperatorId[] {
   return field.operators ?? supportedOperators(field.type, field.nullable);
 }
-export function operatorLabel(field: Field, operator: OperatorId): string {
-  return field.operatorLabels?.[operator] ?? OPERATOR_LABELS[operator];
+export function operatorLabel(field: Field, operator: OperatorId, labels: Readonly<Record<OperatorId, string>> = OPERATOR_LABELS): string {
+  return field.operatorLabels?.[operator] ?? labels[operator];
 }
 export function noValue(operator: OperatorId): boolean {
   return operator === 'is_empty' || operator === 'is_not_empty';

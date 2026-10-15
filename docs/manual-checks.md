@@ -71,6 +71,17 @@ versions, OS, and outcome; these combinations are not currently claimed tested.
   Escape/remove and the modal example restore focus appropriately.
 - Code panels and result-table scrolling can be reached and operated from the keyboard.
 
+## Translated messages
+
+- Mount an instance with a complete `messages` catalog (see messages.md) and translated
+  field/option labels. Check visible controls, validation constraints, enum selection
+  status, chip names, and add/edit/remove/clear/discard announcements for English leaks.
+- Check that reordered `{field}`, `{operator}`, and `{value}` templates remain
+  understandable, including boolean and no-value conditions. Verify long translated
+  labels at narrow widths and that the host document has the correct `lang` / `dir`.
+- Repeat screen-reader checks in the target language; automated axe checks do not
+  establish translation quality, pronunciation, or a complete localized experience.
+
 ## Layout, touch, and preferences
 
 - Test 320px and 360px widths, very long labels, and several wrapped chips.

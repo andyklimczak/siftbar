@@ -1,5 +1,6 @@
 import { operatorsFor, supportedOperators, noValue } from './operators.js';
-import type { Field, FilterState, FilterValue, NumberField, OperatorId, ValidationIssue } from './types.js';
+import { DEFAULT_MESSAGES, formatMessage, MESSAGE_PARAMETERS } from './messages.js';
+import type { Field, FilterState, FilterValue, NumberField, OperatorId, SiftbarMessages, ValidationIssue } from './types.js';
 
 export class SiftbarValidationError extends Error {
   readonly issues: readonly ValidationIssue[];
@@ -15,6 +16,33 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
 }
 function fail(path: string, message: string, code = 'invalid'): never {
   throw new SiftbarValidationError([{ path, message, code }]);
+}
+/** Validate/copy overrides before mounting; programmer-facing diagnostics stay English. */
+export function validateMessages(input: unknown): SiftbarMessages {
+  function group(defaults: object, overrides: unknown, prefix = ''): Record<string, unknown> {
+    if (overrides !== undefined && !isRecord(overrides)) fail(`options.messages${prefix ? `.${prefix}` : ''}`, 'Expected a message mapping.');
+    const result: Record<string, unknown> = {};
+    for (const key of Object.keys(overrides ?? {})) {
+      if (!Object.hasOwn(defaults, key)) fail(`options.messages.${prefix ? `${prefix}.` : ''}${key}`, 'Unknown message.', 'unknown');
+    }
+    for (const [key, fallback] of Object.entries(defaults)) {
+      const path = prefix ? `${prefix}.${key}` : key;
+      const supplied = overrides !== undefined && Object.hasOwn(overrides, key);
+      const value = supplied ? (overrides as Record<string, unknown>)[key] : fallback;
+      if (typeof fallback !== 'string') {
+        if (supplied && !isRecord(value)) fail(`options.messages.${path}`, 'Expected a message mapping.');
+        result[key] = group(fallback, value, path);
+      } else {
+        if (typeof value !== 'string' || !value.length) fail(`options.messages.${path}`, 'Expected nonempty text.');
+        for (const match of value.matchAll(/\{([^{}]+)\}/g)) {
+          if (!(MESSAGE_PARAMETERS[path] ?? []).includes(match[1])) fail(`options.messages.${path}`, `Unknown message parameter: ${match[1]}.`);
+        }
+        result[key] = value;
+      }
+    }
+    return result;
+  }
+  return group(DEFAULT_MESSAGES, input) as unknown as SiftbarMessages;
 }
 export function validateSchema(input: unknown): Field[] {
   if (!Array.isArray(input) || input.length === 0) fail('fields', 'Provide at least one field.');
@@ -80,40 +108,40 @@ export function isCalendarDate(value: unknown): value is string {
   const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
   return day <= [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1];
 }
-function numberError(value: unknown, field: NumberField): string | null {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return 'Enter a finite number.';
-  if (field.integer && !Number.isInteger(value)) return 'Enter a whole number.';
-  if (field.min !== undefined && value < field.min) return `Minimum is ${field.min}.`;
-  if (field.max !== undefined && value > field.max) return `Maximum is ${field.max}.`;
+function numberError(value: unknown, field: NumberField, messages: SiftbarMessages): string | null {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return messages.validation.finiteNumber;
+  if (field.integer && !Number.isInteger(value)) return messages.validation.integer;
+  if (field.min !== undefined && value < field.min) return formatMessage(messages.validation.minimum, { min: field.min });
+  if (field.max !== undefined && value > field.max) return formatMessage(messages.validation.maximum, { max: field.max });
   if (field.step !== undefined) {
     const steps = (value - (field.min ?? 0)) / field.step;
     // Tolerate only floating-point representation error, never round stored values.
-    if (!Number.isFinite(steps) || Math.abs(steps - Math.round(steps)) > 8 * Number.EPSILON * Math.max(1, Math.abs(steps))) return `Use steps of ${field.step} from ${field.min ?? 0}.`;
+    if (!Number.isFinite(steps) || Math.abs(steps - Math.round(steps)) > 8 * Number.EPSILON * Math.max(1, Math.abs(steps))) return formatMessage(messages.validation.step, { step: field.step, origin: field.min ?? 0 });
   }
   return null;
 }
-export function valueError(field: Field, operator: OperatorId, value: unknown): string | null {
-  if (!operatorsFor(field).includes(operator)) return 'Operator is not allowed for this field.';
-  if (noValue(operator)) return value === null ? null : 'This operator requires null, not a value.';
+export function valueError(field: Field, operator: OperatorId, value: unknown, messages: SiftbarMessages = DEFAULT_MESSAGES): string | null {
+  if (!operatorsFor(field).includes(operator)) return messages.validation.operatorNotAllowed;
+  if (noValue(operator)) return value === null ? null : messages.validation.nullRequired;
   switch (field.type) {
-    case 'text': return typeof value === 'string' ? null : 'Enter a text value.';
-    case 'boolean': return typeof value === 'boolean' ? null : 'Choose true or false.';
+    case 'text': return typeof value === 'string' ? null : messages.validation.text;
+    case 'boolean': return typeof value === 'boolean' ? null : messages.validation.boolean;
     case 'number':
-      if (operator !== 'between') return numberError(value, field);
-      if (!Array.isArray(value) || value.length !== 2) return 'Enter two numbers.';
-      return numberError(value[0], field) ?? numberError(value[1], field)
-        ?? (value[0] > value[1] ? 'Range start must not exceed the end.' : null);
+      if (operator !== 'between') return numberError(value, field, messages);
+      if (!Array.isArray(value) || value.length !== 2) return messages.validation.numberRange;
+      return numberError(value[0], field, messages) ?? numberError(value[1], field, messages)
+        ?? (value[0] > value[1] ? messages.validation.rangeOrder : null);
     case 'date':
-      if (operator !== 'between') return isCalendarDate(value) ? null : 'Enter a valid date (YYYY-MM-DD).';
-      if (!Array.isArray(value) || value.length !== 2 || !Array.from(value).every(isCalendarDate)) return 'Enter two valid dates (YYYY-MM-DD).';
-      return value[0] <= value[1] ? null : 'Range start must not exceed the end.';
+      if (operator !== 'between') return isCalendarDate(value) ? null : messages.validation.date;
+      if (!Array.isArray(value) || value.length !== 2 || !Array.from(value).every(isCalendarDate)) return messages.validation.dateRange;
+      return value[0] <= value[1] ? null : messages.validation.rangeOrder;
     case 'enum': {
       const allowed = new Set(field.options.map(option => option.value));
       if (operator === 'any_of' || operator === 'none_of') {
         return Array.isArray(value) && value.length > 0 && Array.from(value).every(v => typeof v === 'string' && allowed.has(v)) && new Set(value).size === value.length
-          ? null : 'Choose at least one option, without duplicates.';
+          ? null : messages.validation.enumMultiple;
       }
-      return typeof value === 'string' && allowed.has(value) ? null : 'Choose an available option.';
+      return typeof value === 'string' && allowed.has(value) ? null : messages.validation.enumSingle;
     }
   }
 }

@@ -1,7 +1,7 @@
 # Verification — Siftbar 0.1.0
 
-Local implementation only. No npm publication, remote repository creation, or
-GitHub Pages deployment has been performed.
+The checks below describe local verification. They do not establish the result of
+a GitHub Pages deployment or npm publication.
 
 ## Environment
 
@@ -18,10 +18,11 @@ GitHub Pages deployment has been performed.
 Command: `BROWSERS=chromium,firefox npm run check`
 
 - TypeScript and ESLint pass.
-- 80 unit tests pass.
-- 120 browser tests pass (60 scenarios per engine), including axe scans.
+- 122 unit tests pass.
+- 132 browser tests pass (66 scenarios per engine), including axe scans.
 - Real npm pack extraction, DOM-free Node import, and a separate TypeScript consumer
-  verify the package exports, styles, licenses, declarations, and preset API.
+  verify the package exports, styles, licenses, declarations, preset API, message
+  reference, and message override types.
 - Previous npm audit reported zero vulnerabilities.
 
 Tests load built artifacts. Coverage includes all five library types, repeated
@@ -36,6 +37,14 @@ Enum follow-up checks verify dropdown bounds within the Value column, selected c
 inside Value for any_of/none_of, individually labeled removal buttons, keyboard
 removal, preserved focus, no early save/form submit, Escape, empty-selection discard,
 search/no-match behavior, safe HTML-looking labels, mobile wrapping, and axe checks.
+
+Message checks cover partial/default fallback, defensive copies, invalid mappings
+and template parameters, safe single-pass interpolation, per-instance localization,
+operator-label precedence, and all value-validation errors. Browser checks exercise
+translated controls/dialogs, number constraints/ranges, boolean/no-value chips,
+enum statuses/removal, announcements, unchanged typed state, untouched hosts on
+invalid configuration, and a translated enum editor axe scan. Native date controls
+and human screen-reader pronunciation remain outside that localization claim.
 
 ## Examples
 
@@ -78,7 +87,7 @@ fixtures, not Rails application/gem tests.
 
 Browser artifacts are self-contained, minified, with source maps, separate CSS,
 declarations, version metadata, and MIT notices. Package checks print raw/gzip sizes.
-Only library files, README, and licenses are packed, not examples/dev tooling.
+Only library files, README, the message reference, and licenses are packed, not examples/dev tooling.
 Pages-ready assets build into site-dist/ with relative paths and .nojekyll. Public
 review results require network access; the Pages workflow runs on pushes to master
 and supports manual runs.
@@ -86,8 +95,8 @@ Local root/project-path tests verify built assets and .nojekyll.
 The workflow uses Node 22 on Ubuntu 24.04, installs all browser dependencies,
 retains failure diagnostics, and grants deployment permissions only to the deploy job.
 .gitignore checks verify generated/local files are excluded while source, lockfile,
-license, workflow, and environment templates remain versionable. The workflow has not
-run on GitHub and hosted serving remains unverified.
+license, workflow, and environment templates remain versionable. Local checks do not
+establish whether the latest GitHub workflow has deployed successfully.
 
 Not claimed tested: WebKit/Safari on this host; human screen-reader/touch/IME/zoom/
 forced-colors certification; all CSP/custom-skin combinations; older browsers;
