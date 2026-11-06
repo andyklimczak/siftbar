@@ -34,6 +34,7 @@ export interface SiftbarMessages {
   label: string;
   placeholder: string;
   addFilterLabel: string;
+  /** Retained for message-catalog compatibility; no separate add button is rendered. */
   addFilter: string;
   quickSearchLabel: string;
   quickSearchPlaceholder: string;
@@ -105,7 +106,8 @@ export type SiftbarMessageOverrides = Partial<Omit<SiftbarMessages, 'operators' 
 };
 export interface SiftbarOptions {
   fields: readonly Field[];
-  /** Opt-in plain-text search. Host applies OR across these text fields, AND with filters. */
+  /** Plain-text search; defaults to all text fields supporting contains. [] disables it.
+   * Host applies OR across these fields, AND with filters. */
   quickSearchFields?: readonly string[];
   messages?: SiftbarMessageOverrides;
   label?: string;

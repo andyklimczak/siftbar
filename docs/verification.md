@@ -18,8 +18,8 @@ a GitHub Pages deployment or npm publication.
 Command: `BROWSERS=chromium,firefox npm run check`
 
 - TypeScript and ESLint pass.
-- 141 unit tests pass.
-- 146 browser tests pass (73 scenarios per engine), including axe scans.
+- 142 unit tests pass.
+- 156 browser tests pass (78 scenarios per engine), including axe scans.
 - Real npm pack extraction, DOM-free Node import, and a separate TypeScript consumer
   verify the package exports, styles, licenses, declarations, preset API, message
   reference, and message override types.
@@ -46,21 +46,26 @@ enum statuses/removal, announcements, unchanged typed state, untouched hosts on
 invalid configuration, and a translated enum editor axe scan. Native date controls
 and human screen-reader pronunciation remain outside that localization claim.
 
-Quick-search checks cover opt-in schema/state validation, field allowlists and
-copying, unchanged filter-only state, atomic rejection, independent search/chip
-updates, presets, clearing, Enter/IME guards, escaped values, callback/event payloads,
-no enclosing form submission, silent restoration and destroy/remount. Chromium and
-Firefox also cover the separate keyboard field picker, localized quick-search
-controls, mobile layout, and an axe scan. Application-specific OR/AND query semantics
-and joins remain the host's responsibility, not a core evaluator.
+Quick-search checks cover default eligible-field inference, explicit allowlists and
+opt-out, state validation/copying, atomic rejection, independent search/chip updates,
+presets, clearing, live typing/paste events, Enter/IME guards, escaped values,
+callback/event payloads, no enclosing form submission, silent restoration and
+search persistence without Enter across destroy/remount. Chromium and Firefox verify
+that the same input opens all fields, typing does not narrow them, arrows explicitly
+select fields, and there is no Add filter button or extra search field. Tests also
+cover localized/mobile combobox and editor axe scans, synchronous host teardown,
+and IME compositionend deduplication. Example-adapter tests verify literal OR search
+across product/manufacturer AND with chips. Backend semantics and joins remain the
+host's responsibility, not a core evaluator.
 
 ## Examples
 
-All data examples now use The Report of the Week API. The earlier DummyJSON examples
-and fixtures were removed; data fields/operators are constrained to supported API
-category, inclusive rating bounds, and release-date queries. Any-of categories make
-one supported request per value, merge/deduplicate, and recheck exact AND/null rules.
-Other library field types remain supported by the generic interaction fixtures.
+All data examples use The Report of the Week API. Product/manufacturer fields and
+quick search are evaluated locally on fetched reviews; category, inclusive rating
+bounds, and release-date filters use supported API parameters. Any-of categories
+make one supported request per value, merge/deduplicate, and recheck exact AND/null
+rules. The generic interaction fixtures explicitly opt out of quick search to retain
+coverage of filter-only field-label/alias navigation.
 
 The site leads with basic → preset buttons → dropdown/Clear, then API, themes, and
 modal examples. Data widgets contain counts and essential status, not request URLs
@@ -73,7 +78,9 @@ tab changes. Rendering internals and state tools remain optional.
 Provider fixtures contain eight representative reviews, not production bundled
 records. They cover API parameters, supported operator lists, empty responses,
 null/zero handling, request fanout, stale-response prevention, errors/retry using
-current filters, section permalinks, and API-only failure behavior with no repository requests.
+current search and filters, section permalinks, and API-only failure behavior with
+no repository requests. Live basic-example typing updates actual result rows without
+Enter, preserves all field choices, and combines with chips; Retry retains search.
 Fixture passes do not prove upstream availability.
 
 Following the upstream CORS fix, real endpoint checks verified Access-Control-Allow-Origin: *.

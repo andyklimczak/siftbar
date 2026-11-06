@@ -9,7 +9,7 @@ async function mount(page, messages, options = {}) {
     const f = window.fixture;
     f.one.destroy();
     // Exercise the same plain JSON boundary as a server-rendered configuration.
-    const config = JSON.parse(JSON.stringify({ fields: f.fields, ...options, messages }));
+    const config = JSON.parse(JSON.stringify({ fields: f.fields, quickSearchFields: [], ...options, messages }));
     f.one = new f.Siftbar(document.querySelector('#one'), config);
     window.messagesConfig = config;
   }, { messages, options });

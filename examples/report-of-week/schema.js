@@ -1,5 +1,8 @@
+export const quickSearchFields = ['product', 'manufacturer'];
 // @setup:start
 export const fields = [
+  { key: 'product', label: 'Product', type: 'text' },
+  { key: 'manufacturer', label: 'Manufacturer', type: 'text' },
   { key: 'category', label: 'Category', type: 'enum', operators: ['eq', 'any_of'], options: [
     { value: 'Running On Empty', label: 'Running On Empty' },
     { value: 'Energy Crisis', label: 'Energy Crisis' },

@@ -1,4 +1,5 @@
 import { planReportRequests, fetchReports } from './data.js';
+import { quickSearchFields } from './schema.js';
 import { filterRecords } from '../vanilla/evaluate.js';
 import { renderRows } from '../vanilla/results.js';
 
@@ -10,9 +11,10 @@ export function createResultView(prefix) {
   const retry = document.querySelector(`#${prefix}-retry`);
   let pending;
   let requestId = 0;
-  let currentFilters = [];
-  async function updateResults({ filters }) {
-    currentFilters = filters;
+  let currentState = { filters: [] };
+  async function updateResults(state) {
+    currentState = state;
+    const { filters } = state;
     pending?.abort();
     pending = new AbortController();
     const id = ++requestId;
@@ -27,7 +29,7 @@ export function createResultView(prefix) {
       if (id !== requestId) return;
       const unique = [...new Map(responses.flat().map(report => [report.id, report])).values()];
       // Exact AND checks also avoid treating unrated records as zero.
-      const matches = filterRecords(unique, { filters }).sort((a, b) => (b.dateReleased ?? '').localeCompare(a.dateReleased ?? ''));
+      const matches = filterRecords(unique, state, { quickSearchFields }).sort((a, b) => (b.dateReleased ?? '').localeCompare(a.dateReleased ?? ''));
       renderRows(rows, matches, ['product', 'manufacturer', 'category', 'rating', 'dateReleased']);
       count.textContent = `${matches.length} ${matches.length === 1 ? 'review' : 'reviews'}`;
       status.textContent = '';
@@ -38,8 +40,8 @@ export function createResultView(prefix) {
       retry.hidden = false;
     }
   }
-  retry.addEventListener('click', () => { void updateResults({ filters: currentFilters }); });
-  updateResults.reload = () => updateResults({ filters: currentFilters });
+  retry.addEventListener('click', () => { void updateResults(currentState); });
+  updateResults.reload = () => updateResults(currentState);
   updateResults.cancel = () => { ++requestId; pending?.abort(); };
   void updateResults({ filters: [] });
   return updateResults;

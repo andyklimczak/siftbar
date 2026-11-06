@@ -25,7 +25,6 @@ export class Siftbar {
   private readonly root: HTMLDivElement;
   private readonly chips: HTMLDivElement;
   private readonly input: HTMLInputElement;
-  private readonly addControl: HTMLElement;
   private readonly quickSearchFields: string[];
   private readonly clearButton: HTMLButtonElement;
   private readonly popup: HTMLDivElement;
@@ -87,18 +86,13 @@ export class Siftbar {
     const icon = this.element('span', 'siftbar__icon', '⌕');
     icon.setAttribute('aria-hidden', 'true');
     this.chips = this.element('div', 'siftbar__chips');
-    this.input = this.element('input', this.quickSearchFields.length ? 'siftbar__search' : 'siftbar__add');
+    this.input = this.element('input', this.quickSearchFields.length ? 'siftbar__add siftbar__search' : 'siftbar__add');
     this.input.type = 'text';
-    this.input.placeholder = this.quickSearchFields.length ? this.messages.quickSearchPlaceholder : options.placeholder ?? this.messages.placeholder;
+    this.input.placeholder = options.placeholder ?? (this.quickSearchFields.length ? this.messages.quickSearchPlaceholder : this.messages.placeholder);
     this.input.setAttribute('aria-label', this.quickSearchFields.length
       ? formatMessage(this.messages.quickSearchLabel, { fields: this.quickSearchFields.map(key => this.fields.find(field => field.key === key)!.label).join(this.messages.listSeparator) })
       : formatMessage(this.messages.addFilterLabel, { label }));
     this.input.autocomplete = 'off';
-    this.addControl = this.quickSearchFields.length ? this.button(formatMessage(this.messages.addFilterLabel, { label }), 'siftbar__add', () => {
-      this.finishDraft();
-      if (!this.dead) this.beginAdd();
-    }) : this.input;
-    if (this.quickSearchFields.length) this.addControl.textContent = this.messages.addFilter;
     this.clearButton = this.button(this.messages.clearLabel, 'siftbar__clear', () => this.clear());
     this.clearButton.textContent = this.messages.clear;
     this.popup = this.element('div', 'siftbar__popup');
@@ -110,41 +104,43 @@ export class Siftbar {
     this.live.setAttribute('aria-live', 'polite');
     this.live.setAttribute('aria-atomic', 'true');
     bar.append(icon, this.chips, this.input);
-    if (this.addControl !== this.input) bar.append(this.addControl);
     bar.append(this.clearButton);
     this.root.append(bar, this.popup, this.live);
     host.append(this.root);
     mounted.set(host, this);
     this.host = host;
-    if (!this.quickSearchFields.length) this.setupCombo(this.input);
+    this.setupCombo(this.input);
+    if (this.quickSearchFields.length) this.input.setAttribute('aria-autocomplete', 'none');
     const signal = this.abort.signal;
     this.input.addEventListener('focus', () => {
-      if (this.quickSearchFields.length) return;
       if (!this.suppressOpen && (!this.draft || this.combo !== this.input)) {
         this.finishDraft();
         if (!this.dead) this.beginAdd();
       }
     }, { signal });
     this.input.addEventListener('click', () => {
-      if (this.quickSearchFields.length) return;
       if (!this.draft || this.combo !== this.input) {
         this.finishDraft();
         if (!this.dead) this.beginAdd();
       }
     }, { signal });
-    this.input.addEventListener('input', () => {
+    this.input.addEventListener('input', event => {
       this.selectedChip = undefined;
-      if (this.quickSearchFields.length) return;
+      if (this.composing || (event as InputEvent).isComposing) return;
       if (!this.draft || this.combo !== this.input) {
         const query = this.input.value;
         this.finishDraft();
         if (this.dead) return;
         this.input.value = query; this.beginAdd();
       }
-      this.renderFieldChoices(this.input.value);
+      this.renderFieldChoices(this.quickSearchFields.length ? '' : this.input.value);
+      if (this.quickSearchFields.length) this.applySearch(this.input.value.trim());
     }, { signal });
     this.root.addEventListener('compositionstart', () => { this.composing = true; }, { signal });
-    this.root.addEventListener('compositionend', () => { this.composing = false; }, { signal });
+    this.root.addEventListener('compositionend', event => {
+      this.composing = false;
+      if (this.quickSearchFields.length && event.target === this.input) this.applySearch(this.input.value.trim());
+    }, { signal });
     this.root.addEventListener('keydown', event => this.onKey(event), { signal });
     this.root.addEventListener('focusout', () => this.scheduleFinish(), { signal });
     this.doc.addEventListener('pointerdown', event => {
@@ -176,10 +172,14 @@ export class Siftbar {
   /** Commit plain search text. Empty text clears search, retaining filter chips. */
   setSearch(value: string, { emit = true }: EmitOptions = {}): void {
     this.assertAlive();
+    this.applySearch(value, emit, true);
+  }
+  private applySearch(value: string, emit = true, reset = false): void {
     const previous = this.store.get().search;
     this.store.setSearch(value);
     const changed = previous !== this.store.get().search;
-    this.afterSet(false);
+    if (reset) this.afterSet(false);
+    else this.renderChips();
     if (emit && changed) {
       this.announce(this.store.get().search ? this.messages.searchApplied : this.messages.searchCleared);
       this.notify({ reason: 'search' });
@@ -204,7 +204,7 @@ export class Siftbar {
     this.focusWithoutOpening(this.input);
     if (emit && changed) { this.announce(this.messages.filtersCleared); this.notify({ reason: 'clear' }); }
   }
-  focus(): void { this.assertAlive(); this.input.focus(); if (!this.quickSearchFields.length && !this.draft) this.beginAdd(); }
+  focus(): void { this.assertAlive(); this.input.focus(); if (!this.draft) this.beginAdd(); }
   destroy(): void {
     if (this.dead) return;
     this.close(false);
@@ -289,7 +289,7 @@ export class Siftbar {
   }
   private beginAdd(): void {
     this.draft = {};
-    this.openingControl = this.addControl;
+    this.openingControl = this.input;
     this.step = 'field';
     this.renderFieldPicker();
     this.show();
@@ -316,10 +316,8 @@ export class Siftbar {
       this.combo.setAttribute('aria-expanded', 'false');
       this.combo.removeAttribute('aria-activedescendant');
     }
-    if (!this.quickSearchFields.length) {
-      this.input.setAttribute('aria-expanded', 'false');
-      this.input.removeAttribute('aria-activedescendant');
-    }
+    this.input.setAttribute('aria-expanded', 'false');
+    this.input.removeAttribute('aria-activedescendant');
     this.popup.replaceChildren();
     this.popup.removeAttribute('role');
     this.popup.removeAttribute('aria-label');
@@ -338,17 +336,6 @@ export class Siftbar {
     input.setAttribute('aria-autocomplete', 'list');
     input.setAttribute('aria-expanded', 'false');
     input.setAttribute('aria-controls', `${this.uid}-list`);
-  }
-  private pickerInput(label: string, placeholder: string, parent: HTMLElement = this.popup): HTMLInputElement {
-    const wrapper = this.element('label', 'siftbar__label', label);
-    const input = this.element('input', 'siftbar__picker-input');
-    input.type = 'text';
-    input.placeholder = placeholder;
-    input.autocomplete = 'off';
-    this.setupCombo(input);
-    wrapper.append(input);
-    parent.append(wrapper);
-    return input;
   }
   private createList(combo: HTMLInputElement, label: string, multi = false, parent: HTMLElement = this.popup): void {
     this.combo = combo;
@@ -422,18 +409,16 @@ export class Siftbar {
     this.step = 'field';
     this.popup.dataset.step = 'field';
     this.heading(this.messages.chooseField);
-    const input = this.quickSearchFields.length ? this.pickerInput(this.messages.field, this.options.placeholder ?? this.messages.placeholder) : this.input;
-    if (input !== this.input) {
-      input.addEventListener('input', () => this.renderFieldChoices(input.value), { signal: this.contentAbort!.signal });
-      this.focusSoon(input);
-    }
-    this.createList(input, this.messages.fieldsLabel);
-    this.renderFieldChoices(input.value);
+    this.createList(this.input, this.messages.fieldsLabel);
+    this.renderFieldChoices(this.quickSearchFields.length ? '' : this.input.value);
   }
   private renderFieldChoices(query: string): void {
     const q = query.toLocaleLowerCase();
     this.drawChoices(this.fields.filter(field => [field.label, ...(field.aliases ?? [])].some(label => label.toLocaleLowerCase().includes(q)))
       .map(field => ({ key: field.key, label: field.label, hint: this.messages.fieldTypes[field.type], group: field.group, select: () => this.chooseField(field) })));
+    // Typing searches data, not field names. Require deliberate arrow navigation
+    // before Enter selects a field, so an ordinary search never creates a draft.
+    if (this.quickSearchFields.length) { this.active = -1; this.updateActive(false); }
   }
   private chooseField(field: Field, focus: EditorFocus = 'value'): void {
     if (!this.draft) return;
@@ -684,8 +669,13 @@ export class Siftbar {
   private onKey(event: KeyboardEvent): void {
     if (event.isComposing || this.composing || event.keyCode === 229 || event.defaultPrevented) return;
     if (this.quickSearchFields.length && event.target === this.input) {
-      if (event.key === 'Enter') { event.preventDefault(); this.setSearch(this.input.value.trim()); return; }
-      if (event.key === 'Escape') { event.preventDefault(); this.input.value = this.store.get().search ?? ''; return; }
+      if (event.key === 'Enter' && !(this.step === 'field' && this.draft && this.active >= 0)) {
+        event.preventDefault();
+        this.close(false);
+        this.setSearch(this.input.value.trim());
+        return;
+      }
+      if (!this.draft && ['ArrowDown', 'ArrowUp'].includes(event.key)) this.beginAdd();
     }
     if (!this.quickSearchFields.length && event.target === this.input && !this.draft && ['Enter', 'ArrowDown', 'ArrowUp'].includes(event.key)) {
       event.preventDefault(); this.beginAdd(); return;
@@ -698,7 +688,8 @@ export class Siftbar {
     if (event.target === this.combo && this.choices.length) {
       if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
         event.preventDefault();
-        this.active = (this.active + (event.key === 'ArrowDown' ? 1 : -1) + this.choices.length) % this.choices.length;
+        this.active = this.active < 0 ? (event.key === 'ArrowDown' ? 0 : this.choices.length - 1)
+          : (this.active + (event.key === 'ArrowDown' ? 1 : -1) + this.choices.length) % this.choices.length;
         this.updateActive(); return;
       }
       if (event.key === 'Enter') { event.preventDefault(); this.choices[this.active]?.select(); return; }
@@ -789,11 +780,9 @@ export class Siftbar {
     this.stopPositioning = undefined;
     if (typeof this.popup.hidePopover === 'function' && this.popup.matches(':popover-open')) this.popup.hidePopover();
     this.popup.hidden = true;
-    if (!this.quickSearchFields.length) {
-      this.input.setAttribute('aria-expanded', 'false');
-      this.input.removeAttribute('aria-activedescendant');
-      this.input.value = '';
-    }
+    this.input.setAttribute('aria-expanded', 'false');
+    this.input.removeAttribute('aria-activedescendant');
+    if (!this.quickSearchFields.length) this.input.value = '';
     const opener = this.openingControl;
     this.draft = null;
     this.pendingFocus = undefined;

@@ -102,7 +102,7 @@ export function validateSchema(input: unknown): Field[] {
   return fields;
 }
 export function validateQuickSearchFields(input: unknown, fields: readonly Field[]): string[] {
-  if (input === undefined) return [];
+  if (input === undefined) return fields.filter(field => field.type === 'text' && operatorsFor(field).includes('contains')).map(field => field.key);
   if (!Array.isArray(input)) fail('options.quickSearchFields', 'Expected a field key array.');
   const seen = new Set<string>();
   return Array.from(input, (key: unknown, index) => {

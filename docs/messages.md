@@ -57,9 +57,9 @@ existing instance. Different instances can use different languages.
 | `label` | Filters — default group label | — |
 | `placeholder` | Add a filter… — default add-field placeholder | — |
 | `addFilterLabel` | {label}: add a filter | `label` |
-| `addFilter` | Add filter — button text when quick search is enabled | — |
-| `quickSearchLabel` | Search {fields} — plain input's accessible name | `fields` |
-| `quickSearchPlaceholder` | Search… — plain input's placeholder | — |
+| `addFilter` | Add filter — retained for catalog compatibility; no button is rendered | — |
+| `quickSearchLabel` | Search {fields} — shared search/field-picker input's accessible name | `fields` |
+| `quickSearchPlaceholder` | Search… — shared input's placeholder when quick search is enabled | — |
 | `clear` | Clear — visible button text | — |
 | `clearLabel` | Clear filters — button's accessible name | — |
 | `chooseField` | Choose a field — picker heading | — |

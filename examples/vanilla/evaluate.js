@@ -1,9 +1,10 @@
 // Example-only evaluator. Siftbar itself never evaluates rows or builds queries.
 // Text comparisons default to case-insensitive; serialized text is untouched.
 // This demo defines empty as null, missing, or an empty string (not 0 or false).
-export function filterRecords(records, state, { caseSensitive = false } = {}) {
+export function filterRecords(records, state, { caseSensitive = false, quickSearchFields = [] } = {}) {
   const text = value => caseSensitive ? value : value.toLocaleLowerCase();
-  return records.filter(row => state.filters.every(({ field, operator, value }) => {
+  return records.filter(row => (!state.search || quickSearchFields.some(field =>
+    typeof row[field] === 'string' && text(row[field]).includes(text(state.search)))) && state.filters.every(({ field, operator, value }) => {
     const current = row[field];
     const empty = current === null || current === undefined || current === '';
     if (operator === 'is_empty') return empty;

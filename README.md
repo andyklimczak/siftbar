@@ -2,16 +2,17 @@
 
 **A framework-free, typed filter bar for the web.**
 
-Select a field, choose an operator, enter a value, and get an editable filter chip.
-Siftbar builds and edits the filters. Your application decides how to filter local
-data or query a backend. Repeated fields are allowed; all conditions combine with AND.
+Type in the bar to search data, or select a field, choose an operator, and enter a
+value to create an editable filter chip. Siftbar builds and edits the search state.
+Your application decides how to filter local data or query a backend. Repeated fields are allowed; all conditions combine with AND.
 
 TypeScript-authored JavaScript, no UI framework, and no consumer build requirement.
 A small Floating UI positioning dependency is bundled into the browser artifacts.
 
 ## Try it / develop locally
 
-This project has not been published to npm or deployed to GitHub Pages yet.
+Try the [hosted examples](https://andyklimczak.github.io/siftbar/). The package has
+not been published to npm.
 
 ```sh
 npm ci
@@ -21,7 +22,8 @@ npm run dev
 
 The examples site progresses from **basic setup → preset buttons → preset dropdown
 and Clear**, followed by The Report of the Week API, themes, and a native modal.
-The data examples use API-compatible category, rating, and release-date filters.
+The data examples search product/manufacturer text locally and use API-compatible
+category, rating, and release-date filters.
 Setup and actual `updateResults`/HTTP functions are shown inline, with separate copy
 buttons; rendering internals and state tools stay optional. Other library field types
 remain supported and covered by the interaction fixtures.
@@ -33,7 +35,9 @@ All data examples request `https://thereportoftheweekapi.com/api/v1/reports/` us
 `category`, `min_rating`, `max_rating`, `min_date`, and `max_date`. An enum “is any of”
 selection makes one supported category request per value, then merges/deduplicates
 results. Exact local AND checks preserve repeated-condition and null/zero semantics.
-The page shows counts and essential status, not live request URLs or plumbing prose.
+Quick search matches product OR manufacturer within those results; the API has no
+free-text search parameter. The page shows counts and essential status, not live
+request URLs or plumbing prose.
 
 All results come directly from the API, which now supports cross-origin browser
 requests. There is no repository JSON, alternate-source cache, or offline fallback.
@@ -87,8 +91,8 @@ const filters = new Siftbar(document.querySelector('#filters'), {
 ```
 
 `updateResults` is your application's results or search-request handler, not another
-Siftbar helper. Siftbar calls it when committed filters change. It receives the current
-filters in the callback payload; your application decides how to apply them.
+Siftbar helper. Siftbar calls it when search text or committed filters change. It
+receives `state.search` and `state.filters`; your application decides how to apply them.
 You do **not** need to construct IDs, store filter state, manage JSON, or call
 `getState`/`setState` for normal use. Those APIs are for optional persistence,
 restoration, and advanced integration—not required setup.
@@ -142,10 +146,11 @@ intentionally want a silent update. Invalid conditions preserve saved filters an
 the active draft; explicit `id` properties are rejected. `FilterCondition` is exported
 for TypeScript callers. `clear()` emits when there are saved filters to remove.
 
-## Quick search (opt-in)
+## Quick search
 
-Configure `quickSearchFields` to allow typing or pasting an opaque value directly
-into the bar, without selecting a field/operator or creating a chip:
+Typing or pasting into the bar updates `state.search` immediately, without selecting
+a field/operator or creating a chip. By default, search covers all configured text
+fields supporting `contains`. Set `quickSearchFields` to narrow that list:
 
 ```js
 const quickSearchFields = ['email', 'user_id'];
@@ -159,10 +164,17 @@ const filters = new Siftbar(document.querySelector('#filters'), {
 });
 ```
 
-Press **Enter** to commit. The input continues to show only the value (for example,
-`andy@test.com` or a UUID). Typing, pasting, and blur alone do not emit changes;
-IME Enter does not commit. Escape restores committed text. **Add filter** opens a
-separate field picker within the same bar, so chips and quick search can coexist.
+Each changed query emits reason `search` as you type. The input continues to show
+only the value (for example, `andy@test.com` or a UUID). Focus or click the same input
+to browse **all fields**; typing never narrows this list. Click a field, or use
+ArrowDown/ArrowUp and Enter, to add an explicit filter alongside the search. There
+is no separate **Add filter** button or **Quick search** field.
+
+Enter without deliberate field navigation dismisses the picker and does not repeat
+the search or submit an enclosing form. Escape dismisses the picker without undoing
+the live query. IME composition is applied once composition ends, not while composing.
+Siftbar does not debounce changes; a backend results handler can debounce requests
+and should cancel or ignore stale responses.
 
 The host applies `state.search` as case-insensitive literal contains matching with
 **OR across its configured quick-search fields**, then **AND with every chip**:
@@ -173,9 +185,11 @@ state and independently allowlist the fields. The configured field list is not
 sent in saved state and must also be known to the results handler/backend.
 
 `quickSearchFields` must contain unique known text fields supporting `contains`.
-Omit it or pass `[]` for the original filter-only UI and state shape. The list is
-copied and validated before mounting. Labels, placeholder, button, and announcements
-are configurable through `messages` (see [the catalog](docs/messages.md)).
+Omit it to use all eligible text fields, or pass `[]` for the original filter-only
+UI and state shape (also used when the schema has no eligible text fields). In that
+explicit filter-only mode, typing still navigates field labels/aliases. The list is
+copied and validated before mounting. Labels, placeholder, and announcements are
+configurable through `messages` (see [the catalog](docs/messages.md)).
 
 Committed quick search adds an **optional** `search` string to version-1 state:
 
@@ -184,18 +198,22 @@ Committed quick search adds an **optional** `search` string to version-1 state:
 ```
 
 Omit `search` when empty. Older states without it still restore unchanged; older
-Siftbar/server versions will reject states containing it, so upgrade consumers
-before enabling this opt-in feature. `validateState(state, fields, quickSearchFields)`
-accepts the configured list as its optional third argument; without it, search
-state is rejected. Restoration never infers enabled search from untrusted state.
+Siftbar/server versions will reject states containing it. **Compatibility change:**
+quick search now defaults on for eligible text fields, emits while typing rather
+than waiting for Enter, and shares the field picker input. Upgrade results handlers
+and server validation before loading this version, or set `quickSearchFields: []`
+to retain the previous filter-only behavior.
+
+`validateState(state, fields, quickSearchFields)` accepts the server's allowlisted
+field list as its optional third argument; without it, search state is rejected. Restoration never infers enabled search from untrusted state.
 
 `setSearch(text, { emit = true })` commits programmatically and emits reason `search`
 only when the saved query changes. Programmatic nonempty strings are preserved
-exactly; the Enter interaction trims outer whitespace. Empty text/empty Enter clears
-only search. `setFilters` replaces chips but retains committed search. `clear()`
-clears both. `getState`, `setState`, snapshots, and events include committed search;
-unsubmitted text is a draft and is not persisted. `focus()` focuses the plain input
-instead of opening a picker when this feature is enabled.
+exactly; typing/paste/Enter trim outer whitespace in saved state without moving the
+caret while typing. Deleting the query clears only search immediately. `setFilters`
+replaces chips but retains search. `clear()` clears both. `getState`, `setState`,
+snapshots, and events include live search, so it survives restoration without Enter.
+`focus()` focuses the shared input and opens the field picker.
 
 ### Related records and joins
 
@@ -253,7 +271,8 @@ are not supported.
 Text, including whitespace and `""`, is preserved. Empty string is a valid explicit
 text value, not an automatic nullable condition. An untouched blank text draft is
 not auto-saved; type and clear the input, or press Enter, to explicitly save `""`.
-Without `quickSearchFields`, the field-search input is navigation, not a free-text filter.
+Only when quick search is disabled (`quickSearchFields: []`, or no eligible text
+fields) does typing navigate field labels rather than search data.
 
 Enum identifiers are strings, independent from display labels. Single choices store
 one identifier. Multi-choices store a nonempty, duplicate-free array with order
@@ -389,14 +408,17 @@ condition changes. The DOM event is dispatched before `onChange`; callback and e
 receive separate snapshots of the same transition, isolated from internal state.
 Multiple listeners on the same DOM event naturally share its event payload.
 
-Creation/removal/edit each emits once. Draft changes and cancellation never emit.
+Creation/removal/edit each emits once. Explicit-filter draft changes and cancellation
+never emit; quick search emits as each changed query is typed.
 Initialization and default `setState` are silent. Explicit `setState(..., {emit:true})`
 emits even for identical state. `setFilters` emits a `set` change by default, even
 for an identical condition list; clearing an already empty bar does not emit.
 
 ## Interaction and accessibility
 
-- Search fields by label/alias; arrows navigate pickers, Enter selects.
+- Type to search data. Focus/click the input to browse fields; arrows navigate and
+  Enter selects after deliberate navigation. With quick search disabled, typing
+  searches field labels/aliases instead.
 - Selecting a field opens an editable **Field | Operator | Value** row immediately,
   with an allowed operator preselected. The row wraps on narrow screens.
 - Boolean and no-value operators (such as “is not empty”) show only **Field | Operator**;
@@ -538,9 +560,8 @@ Deployment permissions are scoped to the deploy job; failed checks retain browse
 diagnostics for seven days. No extra secrets or personal access token are required
 for a standard Pages deployment. The browser examples call the public review API.
 
-Local preview uses `npm run build:site && npm run preview`. No remote repository or
-Pages deployment has been created/run by this implementation; hosted verification
-and adding the final demo URL remain separate steps.
+Local preview uses `npm run build:site && npm run preview`. Local checks do not
+establish whether the latest GitHub Pages deployment has finished successfully.
 
 ## Limitations and license
 

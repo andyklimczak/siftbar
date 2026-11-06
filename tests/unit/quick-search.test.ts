@@ -10,9 +10,10 @@ const fields = validateSchema([
 ]);
 const empty = { version: 1, combinator: 'and', filters: [] };
 
-describe('opt-in quick search', () => {
+describe('quick search', () => {
   it('validates and copies configured field keys', () => {
-    expect(validateQuickSearchFields(undefined, fields)).toEqual([]);
+    expect(validateQuickSearchFields(undefined, fields)).toEqual(['email', 'id']);
+    expect(validateQuickSearchFields(undefined, fields.filter(field => field.type !== 'text'))).toEqual([]);
     expect(validateQuickSearchFields([], fields)).toEqual([]);
     const input = ['email', 'id'];
     const copy = validateQuickSearchFields(input, fields);

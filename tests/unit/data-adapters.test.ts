@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { normalizeReport, planReportRequest, planReportRequests, fetchReports } from '../../examples/report-of-week/data.js';
-import { fields } from '../../examples/report-of-week/schema.js';
+import { fields, quickSearchFields } from '../../examples/report-of-week/schema.js';
 import { validateSchema, validateState } from '../../src/core/validation.js';
 import { filterRecords } from '../../examples/vanilla/evaluate.js';
 const report = { id: 'review-1', product: 'Drink', manufacturer: 'Brand', category: 'Energy Crisis', dateReleased: '2020-02-06', rating: 9 };
@@ -70,11 +70,20 @@ describe('application-owned review adapter', () => {
     await expect(fetchReports(planReportRequest([]).url, { signal: controller.signal })).rejects.toMatchObject({ name: 'AbortError' });
     expect(fetch).toHaveBeenCalledTimes(1);
   });
-  it('accepts only API-compatible field operators in data examples', () => {
+  it('searches product OR manufacturer literally, AND with chips', () => {
+    const rows = [report, { ...report, product: 'Other', manufacturer: 'Drink Co', rating: 2 }, { ...report, product: 'Other', manufacturer: null }];
+    const state = { search: 'DRINK', filters: [] };
+    expect(filterRecords(rows, state, { quickSearchFields })).toEqual(rows.slice(0, 2));
+    expect(filterRecords(rows, { ...state, filters: [{ field: 'rating', operator: 'gte', value: 8 }] }, { quickSearchFields })).toEqual([report]);
+    expect(filterRecords(rows, { ...state, search: '%' }, { quickSearchFields })).toEqual([]);
+    expect(filterRecords(rows, state, { quickSearchFields, caseSensitive: true })).toEqual([]);
+    expect(filterRecords(rows, { ...state, search: 'drink co' }, { quickSearchFields })).toEqual([rows[1]]);
+  });
+  it('offers local text search alongside API-compatible field operators', () => {
     const schema = validateSchema(fields);
-    expect(schema.map(field => field.key)).toEqual(['category', 'rating', 'dateReleased']);
-    expect(schema[0].operators).toEqual(['eq', 'any_of']);
-    expect(schema[1].operators).toEqual(['gte', 'lte', 'between']);
-    expect(schema[2].operators).toEqual(['on', 'between']);
+    expect(schema.map(field => field.key)).toEqual(['product', 'manufacturer', 'category', 'rating', 'dateReleased']);
+    expect(schema[2].operators).toEqual(['eq', 'any_of']);
+    expect(schema[3].operators).toEqual(['gte', 'lte', 'between']);
+    expect(schema[4].operators).toEqual(['on', 'between']);
   });
 });

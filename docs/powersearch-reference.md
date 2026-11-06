@@ -52,7 +52,9 @@ as proof that the current component already implements them.
 - Track edits by persistent condition IDs rather than array-index-derived IDs.
 - Follow the brief's simpler versioned JSON, date-only strings, actual booleans,
   and atomic validated restoration instead of PowerSearch's tagged value format.
-- Keep field-search text as navigation input; do not adopt optional free-text search.
+- Original reference choice: field-search text was navigation input. Siftbar now
+  uses the shared input for live data search by default, while still offering all
+  explicit fields; `quickSearchFields: []` retains navigation-only behavior.
 - Require explicit Apply for every edit, including nullable and boolean conditions,
   so changes are cancellable. Still permit quick no-input choices during creation.
 - Validate value compatibility and constraints, not just an editor-type match.

@@ -8,8 +8,8 @@ Start with `npm run dev`, then open http://127.0.0.1:4173/siftbar/.
 
 ## Progressive examples and setup
 
-- The first example filters review category, rating, and release date using supported
-  API operators. Text/boolean library support remains covered by the interaction fixtures.
+- The first example searches product/manufacturer text as you type, alongside
+  review category, rating, and release-date filters using supported API operators.
   There are no preset controls or visible state tools in this example.
 - Read the opening integration guide: assets/container, field definitions, and an
   application-owned results handler. Confirm it does not imply Siftbar fetches or evaluates data.
@@ -23,8 +23,10 @@ Start with `npm run dev`, then open http://127.0.0.1:4173/siftbar/.
 
 ## Keyboard (mouse disconnected)
 
-- Tab to the add combobox; browse fields with arrows and select with Enter.
-- In the generic fixture, search an alias such as hostname. Confirm search text does not become a filter.
+- Tab to the shared search combobox; browse all fields with arrows and select with
+  Enter. Typing searches data, not the available fields.
+- In the explicitly filter-only generic fixture (`quickSearchFields: []`), search an
+  alias such as hostname. Confirm navigation text does not become a data filter.
 - Selecting a field immediately shows Field, Operator, and Value in one row on
   desktop. Confirm the default operator, native select navigation, and responsive
   wrapping on mobile. Enter advances through selects and commits boolean/no-value
@@ -55,19 +57,23 @@ Start with `npm run dev`, then open http://127.0.0.1:4173/siftbar/.
 - Enter in draft controls never submits an enclosing form; deliberate form submit
   still works outside the filter editor.
 
-## Opt-in quick search
+## Quick search
 
-- Mount with text fields and `quickSearchFields: ['email', 'user_id']` as in the README.
-- Paste an email or UUID into the plain bar input and press Enter. Confirm only the
-  value remains in the input, no chip is created, and the host applies OR across
-  those fields and AND with chips. Typing/paste/blur alone must not run a search.
-- Activate Add filter with keyboard and touch. Browse fields using the popup's own
-  search input; adding/editing/removing chips must preserve the plain search value.
-- Empty the plain input and press Enter to clear search only. Clear resets both
-  search and chips. Escape restores committed text. Repeat with an actual CJK IME.
-- Restore saved search after destroy/remount; no initial change should fire.
-- Repeat mobile, translated controls, and screen-reader checks for the plain input,
-  Add filter button, field picker focus, and search/clear announcements.
+- Mount with text fields, using all eligible text fields by default or an explicit
+  `quickSearchFields: ['email', 'user_id']` allowlist as in the README.
+- Type or paste an email/UUID into the bar. Confirm results change without Enter,
+  no chip is created, and the host applies OR across search fields AND with chips.
+- The same input opens all fields. Typing must not narrow the field list. There is
+  no Add filter button or separate Quick search field. Click/touch a field, or use
+  arrows and Enter to choose one. An ordinary Enter must not pick a field or submit.
+- Add/edit/remove chips while searching; the query must survive. Deleting the query
+  clears only search immediately; Clear resets both. Escape dismisses the picker
+  without undoing live text. Repeat with a real CJK IME: no search during composition,
+  one search at compositionend, and no duplicate from the final input event.
+- Restore saved search after destroy/remount without pressing Enter first; no
+  initial change should fire.
+- Repeat mobile, translated controls, and screen-reader checks for the shared
+  combobox, field picker focus, and search/clear announcements.
 
 ## Screen readers
 
@@ -118,12 +124,12 @@ versions, OS, and outcome; these combinations are not currently claimed tested.
 - Exercise the real Turbo/Stimulus fixtures via the browser test suite. External gem
   maintainers separately verify actual Rails asset pipelines, ERB helpers, and versions.
 - Enter HTML-looking labels/values; they must be plain text and execute nothing.
-- Every data example uses review API category/rating/date queries, with request code
-  visible inline. Any-of categories make separate API calls and merge unique reviews.
+- Every data example uses local product/manufacturer text search and review API
+  category/rating/date queries, with request code visible inline. Any-of categories make separate API calls and merge unique reviews.
   Rapid changes must not let obsolete responses replace current results.
 - Category accepts predefined choices—not arbitrary text. Unrated reviews must not
   become zero; dataset-only categories are not offered as API filter choices.
 - Confirm all review data comes directly from the API. Block requests, return HTTP
   errors, or simulate malformed responses: show an error and Retry without requesting
-  repository JSON or substituting records. Retry uses current filters. Widgets and
+  repository JSON or substituting records. Retry uses current search and filters. Widgets and
   inline code panels should remain usable during failures.

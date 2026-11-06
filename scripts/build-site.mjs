@@ -54,6 +54,7 @@ for (const [name, path, handler] of [
     const code = [
       '// Application-owned helpers, not Siftbar APIs.',
       "import { normalizeReport } from '../examples/report-of-week/data.js';",
+      "import { quickSearchFields } from '../examples/report-of-week/schema.js';",
       "import { isCalendarDate } from '../dist/siftbar.js';",
       "import { filterRecords } from '../examples/vanilla/evaluate.js';",
       "import { renderRows } from '../examples/vanilla/results.js';",
