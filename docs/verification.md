@@ -48,13 +48,15 @@ and human screen-reader pronunciation remain outside that localization claim.
 
 Quick-search checks cover default eligible-field inference, explicit allowlists and
 opt-out, state validation/copying, atomic rejection, independent search/chip updates,
-presets, clearing, live typing/paste events, Enter/IME guards, escaped values,
-callback/event payloads, no enclosing form submission, silent restoration and
-search persistence without Enter across destroy/remount. Chromium and Firefox verify
+presets, clearing, long uninterrupted typing/paste without events, Enter/blur commit
+and deduplication, Escape cancellation, IME guards, escaped values, callback/event
+payloads, no enclosing form submission, silent restoration and committed-only
+persistence across destroy/remount. Chromium and Firefox verify
 that the same input opens all fields, typing does not narrow them, arrows explicitly
 select fields, and there is no Add filter button or extra search field. Tests also
 cover localized/mobile combobox and editor axe scans, synchronous host teardown,
-and IME compositionend deduplication. Example-adapter tests verify literal OR search
+and no search on IME completion. Entering the chip editor does not submit early;
+pending text and chip creation emit one combined transition. Example-adapter tests verify literal OR search
 across product/manufacturer AND with chips. Backend semantics and joins remain the
 host's responsibility, not a core evaluator.
 
@@ -79,8 +81,9 @@ Provider fixtures contain eight representative reviews, not production bundled
 records. They cover API parameters, supported operator lists, empty responses,
 null/zero handling, request fanout, stale-response prevention, errors/retry using
 current search and filters, section permalinks, and API-only failure behavior with
-no repository requests. Live basic-example typing updates actual result rows without
-Enter, preserves all field choices, and combines with chips; Retry retains search.
+no repository requests. Basic-example text updates actual result rows on Enter or
+leaving the bar, never while typing, preserves field choices, and combines with
+chips; Retry retains committed search.
 Fixture passes do not prove upstream availability.
 
 Following the upstream CORS fix, real endpoint checks verified Access-Control-Allow-Origin: *.

@@ -148,8 +148,8 @@ for TypeScript callers. `clear()` emits when there are saved filters to remove.
 
 ## Quick search
 
-Typing or pasting into the bar updates `state.search` immediately, without selecting
-a field/operator or creating a chip. By default, search covers all configured text
+Type or paste into the bar, then press Enter or click/tab away to search, without
+selecting a field/operator or creating a chip. By default, search covers all configured text
 fields supporting `contains`. Set `quickSearchFields` to narrow that list:
 
 ```js
@@ -164,17 +164,22 @@ const filters = new Siftbar(document.querySelector('#filters'), {
 });
 ```
 
-Each changed query emits reason `search` as you type. The input continues to show
-only the value (for example, `andy@test.com` or a UUID). Focus or click the same input
+A changed query emits reason `search` only on Enter or when focus leaves the bar.
+Typing and pasting never emit or start a debounce timer. The input continues to
+show only the value (for example, `andy@test.com` or a UUID). Focus or click the same input
 to browse **all fields**; typing never narrows this list. Click a field, or use
 ArrowDown/ArrowUp and Enter, to add an explicit filter alongside the search. There
 is no separate **Add filter** button or **Quick search** field.
 
-Enter without deliberate field navigation dismisses the picker and does not repeat
-the search or submit an enclosing form. Escape dismisses the picker without undoing
-the live query. IME composition is applied once composition ends, not while composing.
-Siftbar does not debounce changes; a backend results handler can debounce requests
-and should cancel or ignore stale responses.
+Enter without deliberate field navigation commits the text and dismisses the picker,
+without submitting an enclosing form. Clicking/tabbing away commits without stealing
+destination focus. Enter followed by blur emits only once for the same query.
+Escape in the search input restores committed text. IME confirmation does not run
+a search; press a non-composing Enter or leave the bar afterward.
+
+Moving into a field editor is not leaving the bar: pending search text and the new
+chip commit together in one change, so a page reload cannot interrupt chip creation.
+Results handlers should still cancel or ignore stale requests.
 
 The host applies `state.search` as case-insensitive literal contains matching with
 **OR across its configured quick-search fields**, then **AND with every chip**:
@@ -199,8 +204,8 @@ Committed quick search adds an **optional** `search` string to version-1 state:
 
 Omit `search` when empty. Older states without it still restore unchanged; older
 Siftbar/server versions will reject states containing it. **Compatibility change:**
-quick search now defaults on for eligible text fields, emits while typing rather
-than waiting for Enter, and shares the field picker input. Upgrade results handlers
+quick search defaults on for eligible text fields and shares the field picker input.
+It commits on Enter or focus leaving the bar, not while typing. Upgrade results handlers
 and server validation before loading this version, or set `quickSearchFields: []`
 to retain the previous filter-only behavior.
 
@@ -209,10 +214,10 @@ field list as its optional third argument; without it, search state is rejected.
 
 `setSearch(text, { emit = true })` commits programmatically and emits reason `search`
 only when the saved query changes. Programmatic nonempty strings are preserved
-exactly; typing/paste/Enter trim outer whitespace in saved state without moving the
-caret while typing. Deleting the query clears only search immediately. `setFilters`
-replaces chips but retains search. `clear()` clears both. `getState`, `setState`,
-snapshots, and events include live search, so it survives restoration without Enter.
+exactly; Enter/blur trim outer whitespace when committing. Deleting the query and
+pressing Enter or leaving the bar clears only search. `setFilters` replaces chips
+but retains committed search. `clear()` clears both. `getState`, `setState`, snapshots,
+and events include only committed search; draft typing is not saved on teardown.
 `focus()` focuses the shared input and opens the field picker.
 
 ### Related records and joins
@@ -409,7 +414,7 @@ receive separate snapshots of the same transition, isolated from internal state.
 Multiple listeners on the same DOM event naturally share its event payload.
 
 Creation/removal/edit each emits once. Explicit-filter draft changes and cancellation
-never emit; quick search emits as each changed query is typed.
+never emit; quick search emits only when a changed query is committed.
 Initialization and default `setState` are silent. Explicit `setState(..., {emit:true})`
 emits even for identical state. `setFilters` emits a `set` change by default, even
 for an identical condition list; clearing an already empty bar does not emit.

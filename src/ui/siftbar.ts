@@ -134,12 +134,11 @@ export class Siftbar {
         this.input.value = query; this.beginAdd();
       }
       this.renderFieldChoices(this.quickSearchFields.length ? '' : this.input.value);
-      if (this.quickSearchFields.length) this.applySearch(this.input.value.trim());
     }, { signal });
     this.root.addEventListener('compositionstart', () => { this.composing = true; }, { signal });
     this.root.addEventListener('compositionend', event => {
       this.composing = false;
-      if (this.quickSearchFields.length && event.target === this.input) this.applySearch(this.input.value.trim());
+      if (event.target === this.input) this.scheduleFinish();
     }, { signal });
     this.root.addEventListener('keydown', event => this.onKey(event), { signal });
     this.root.addEventListener('focusout', () => this.scheduleFinish(), { signal });
@@ -238,6 +237,10 @@ export class Siftbar {
       if (!this.dead && this.draft && !this.pendingFocus
         && !(this.chipPointer && this.chips.contains(this.doc.activeElement))
         && !(this.step === 'value' ? this.popup : this.root).contains(this.doc.activeElement)) this.finishDraft();
+      // Moving into the field editor is not leaving the bar. Wait until focus
+      // really leaves, and don't steal focus back from the clicked destination.
+      if (!this.dead && this.quickSearchFields.length && !this.composing
+        && !this.root.contains(this.doc.activeElement)) this.applySearch(this.input.value.trim());
     }, 0);
   }
   private field(): Field | undefined { return this.fields.find(field => field.key === this.draft?.field); }
@@ -648,6 +651,9 @@ export class Siftbar {
       if (!(error instanceof SiftbarValidationError)) throw error;
       this.announce(this.messages.saveError); return false;
     }
+    // Include pending search text in this one transition, instead of navigating
+    // away halfway through creating a chip or emitting a second GET on blur.
+    if (this.quickSearchFields.length) this.store.setSearch(this.input.value.trim());
     const focused = this.doc.activeElement as HTMLElement | null;
     const focusedEdit = focused?.dataset.editId;
     const focusedRemove = focused?.dataset.removeId;
@@ -669,6 +675,12 @@ export class Siftbar {
   private onKey(event: KeyboardEvent): void {
     if (event.isComposing || this.composing || event.keyCode === 229 || event.defaultPrevented) return;
     if (this.quickSearchFields.length && event.target === this.input) {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        this.input.value = this.store.get().search ?? '';
+        this.close(false);
+        return;
+      }
       if (event.key === 'Enter' && !(this.step === 'field' && this.draft && this.active >= 0)) {
         event.preventDefault();
         this.close(false);

@@ -15,17 +15,21 @@ test('all data examples use review requests, not unrelated services', async ({ p
   expect(await page.evaluate(() => window.siftbarDemos.basic.getState().filters)).toEqual([]);
 });
 
-test('typing in the basic bar filters review data, not the list of fields', async ({ page }) => {
+test('basic free text stays plain and searches only on Enter or leaving the bar', async ({ page }) => {
   const controls = await mockDataApis(page);
   await ready(page);
   const host = page.locator('#basic-filters');
   const input = host.locator('.siftbar__search');
   await input.fill('taco bell');
-  await expect(page.locator('#basic-count')).toHaveText('2 reviews');
+  await expect(page.locator('#basic-count')).toHaveText('8 reviews');
+  expect(controls.reportRequests).toHaveLength(4);
   await expect(host.getByRole('option')).toHaveCount(5);
+  await input.press('Enter');
+  await expect(page.locator('#basic-count')).toHaveText('2 reviews');
   await expect(host.locator('button.siftbar__add')).toHaveCount(0);
   await expect(host.locator('.siftbar__chip')).toHaveCount(0);
   await expect(page.locator('#buttons-count')).toHaveText('8 reviews');
+  await input.click();
   await host.getByRole('option', { name: 'Rating number', exact: true }).click();
   await host.getByRole('combobox', { name: 'Operator', exact: true }).selectOption('gte');
   await host.getByLabel('Value', { exact: true }).fill('6');
@@ -34,20 +38,23 @@ test('typing in the basic bar filters review data, not the list of fields', asyn
   await expect(page.locator('#basic-rows')).toContainText('Volcano Queserito');
   await expect(input).toHaveValue('taco bell');
   await input.fill('coca-cola');
+  await page.locator('#basic-title').click();
   await expect(page.locator('#basic-count')).toHaveText('1 review');
   await expect(page.locator('#basic-rows')).toContainText('Coca-Cola Energy');
   expect(new URL(controls.reportRequests.at(-1)).searchParams.get('search')).toBeNull(); // Local text matching, not an invented API parameter.
   await input.fill('');
+  await input.press('Enter');
   await expect(page.locator('#basic-count')).toHaveText('5 reviews');
   await host.locator('.siftbar__clear').click();
   await expect(page.locator('#basic-count')).toHaveText('8 reviews');
 });
 
-test('retry preserves live search as well as structured filters', async ({ page }) => {
+test('retry preserves committed search as well as structured filters', async ({ page }) => {
   const controls = await mockDataApis(page);
   await ready(page);
   controls.reports = 'error';
   await page.locator('#basic-filters .siftbar__search').fill('Monster');
+  await page.locator('#basic-filters .siftbar__search').press('Enter');
   await expect(page.locator('#basic-count')).toHaveText('Unavailable');
   controls.reports = 'success';
   await page.locator('#basic-retry').click();

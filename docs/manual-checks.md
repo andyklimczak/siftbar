@@ -8,7 +8,7 @@ Start with `npm run dev`, then open http://127.0.0.1:4173/siftbar/.
 
 ## Progressive examples and setup
 
-- The first example searches product/manufacturer text as you type, alongside
+- The first example searches product/manufacturer text on Enter or leaving the bar, alongside
   review category, rating, and release-date filters using supported API operators.
   There are no preset controls or visible state tools in this example.
 - Read the opening integration guide: assets/container, field definitions, and an
@@ -61,17 +61,19 @@ Start with `npm run dev`, then open http://127.0.0.1:4173/siftbar/.
 
 - Mount with text fields, using all eligible text fields by default or an explicit
   `quickSearchFields: ['email', 'user_id']` allowlist as in the README.
-- Type or paste an email/UUID into the bar. Confirm results change without Enter,
-  no chip is created, and the host applies OR across search fields AND with chips.
+- Type or paste a long email/UUID into the bar. Pause longer than a typical debounce;
+  nothing should search or interrupt typing. Enter or leaving the bar applies the
+  query once, with no chip. The host applies OR across search fields AND with chips.
 - The same input opens all fields. Typing must not narrow the field list. There is
   no Add filter button or separate Quick search field. Click/touch a field, or use
   arrows and Enter to choose one. An ordinary Enter must not pick a field or submit.
-- Add/edit/remove chips while searching; the query must survive. Deleting the query
-  clears only search immediately; Clear resets both. Escape dismisses the picker
-  without undoing live text. Repeat with a real CJK IME: no search during composition,
-  one search at compositionend, and no duplicate from the final input event.
-- Restore saved search after destroy/remount without pressing Enter first; no
-  initial change should fire.
+- Add/edit/remove chips while searching; the query must survive. Moving into an
+  editor must not submit first; committing a chip includes pending search text once.
+  Delete the query and press Enter or leave to clear only search; Clear resets both.
+  Escape restores saved text. Real CJK IME completion must not search until a later
+  non-composing Enter or leaving the bar. Enter followed by blur must not duplicate.
+- Restore saved search after destroy/remount; no initial change should fire, and
+  unsubmitted text must not be persisted.
 - Repeat mobile, translated controls, and screen-reader checks for the shared
   combobox, field picker focus, and search/clear announcements.
 
