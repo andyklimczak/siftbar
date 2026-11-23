@@ -12,21 +12,16 @@ app decides what matches and how to display the results.
 
 [![Siftbar showing editable Category and Rating chips above a review table](docs/assets/siftbar-preview.png)](https://andyklimczak.github.io/siftbar/#preset-buttons)
 
-## Is Siftbar right for your project?
+## Features
 
-Use it when a single search box isn't enough and people need to combine conditions
-like **Category is Fast Food** and **Rating is at least 8**. It's a good fit for
-admin screens, catalogs, and dashboards that already have data or a search API.
-
-- **Typed filters:** text, numbers, dates, booleans, and predefined choices.
-- **Ready-made controls:** editable chips, keyboard navigation, light and dark
-  themes, and [customizable UI text](docs/messages.md).
-- **Flexible integration:** use it from JavaScript or TypeScript, with a bundler
-  or directly in a modern browser. Your app can apply presets and save or restore filters.
-
-Choose something else if you need nested AND/OR groups, autocomplete from a
-server, or a component that also searches your data and renders a results table.
-Siftbar combines filter chips with **AND** and makes no network requests.
+- **Quick search and editable chips:** combine free-text search with filters such
+  as **Category is Fast Food** AND **Rating is at least 8**.
+- **Typed filters:** validate text, numbers, dates, booleans, and predefined choices.
+- **Presets and saved filters:** apply common combinations or restore a previous search.
+- **Keyboard-friendly controls** with light and dark themes and
+  [localizable UI text](docs/messages.md).
+- **Framework-free:** use it from JavaScript or TypeScript, with a bundler or
+  directly in a modern browser. Siftbar makes no network requests.
 
 ## Quick start
 
