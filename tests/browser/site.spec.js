@@ -172,7 +172,7 @@ test('modal editing and Escape retain saved filters', async ({ page }) => {
   await expect(page.locator('#filter-dialog')).toBeHidden();
 });
 
-test('standalone script, review ESM pages and guide work without a consumer build', async ({ page }) => {
+test('standalone script and review ESM pages work without a consumer build', async ({ page }) => {
   await page.goto('examples/vanilla/standalone.html');
   await page.getByRole('combobox').click();
   await page.getByRole('option', { name: 'Name text', exact: true }).click();
@@ -183,8 +183,22 @@ test('standalone script, review ESM pages and guide work without a consumer buil
   await expect(page.locator('#local-count')).toHaveText('8 reviews');
   await page.goto('examples/report-of-week/');
   await expect(page.locator('#reports-count')).toHaveText('8 reviews');
-  await page.goto('guide.html');
-  await expect(page.getByRole('heading', { name: 'API & integration guide', exact: true })).toBeVisible();
+});
+
+test('published guide renders Markdown and keeps section links working', async ({ page }) => {
+  await page.goto('./');
+  await page.getByRole('link', { name: 'Documentation', exact: true }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Siftbar API and integration guide' })).toBeVisible();
+  await expect(page.locator('pre code').first()).toContainText("import { Siftbar } from 'siftbar';");
+  await expect(page.getByRole('link', { name: 'README', exact: true }))
+    .toHaveAttribute('href', 'https://github.com/andyklimczak/siftbar/blob/master/README.md');
+  await page.getByRole('link', { name: 'Saved state and validation', exact: true }).click();
+  expect(new URL(page.url()).hash).toBe('#advanced-saved-state-and-validation');
+  await expect(page.getByRole('heading', { name: 'Advanced: saved state and validation' })).toBeInViewport();
+  // The guide should have no broken table-of-contents targets.
+  for (const href of await page.locator('a[href^="#"]').evaluateAll(links => links.map(link => link.hash))) {
+    await expect(page.locator(href)).toHaveCount(1);
+  }
 });
 
 test('each example heading links directly to its section', async ({ page }) => {

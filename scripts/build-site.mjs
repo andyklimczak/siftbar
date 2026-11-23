@@ -1,4 +1,6 @@
 import { cp, mkdir, readFile, writeFile, rm } from 'node:fs/promises';
+import { Marked } from 'marked';
+import { gfmHeadingId } from 'marked-gfm-heading-id';
 await rm('site-dist', { recursive: true, force: true });
 await mkdir('site-dist', { recursive: true });
 await cp('site', 'site-dist', { recursive: true });
@@ -64,7 +66,33 @@ for (const [name, path, handler] of [
     await writeFile(`site-dist/snippets/${name}.results.js`, `${code}\n`);
   }
 }
-const readme = await readFile('README.md', 'utf8');
-const escaped = readme.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
-await writeFile('site-dist/guide.html', `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Siftbar API & integration guide</title><link rel="stylesheet" href="./site.css"></head><body><main><p><a href="./">← Back to examples</a></p><h1>API & integration guide</h1><pre style="white-space:pre-wrap;overflow-wrap:anywhere">${escaped}</pre></main></body></html>`);
+const guideSource = new URL('https://github.com/andyklimczak/siftbar/blob/master/docs/guide.md');
+const guideMarkdown = new Marked(gfmHeadingId(), {
+  walkTokens(token) {
+    // Section links stay on this page; repository documents keep their original paths.
+    if (token.type === 'link' && !token.href.startsWith('#')) {
+      token.href = new URL(token.href, guideSource).href;
+    }
+  },
+  renderer: {
+    html({ text }) {
+      return text.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+    },
+  },
+});
+const guide = guideMarkdown.parse(await readFile('docs/guide.md', 'utf8'));
+await writeFile('site-dist/guide.html', `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Siftbar API and integration guide</title>
+  <link rel="stylesheet" href="./site.css">
+</head>
+<body>
+  <main class="guide">
+    <p><a href="./">← Back to examples</a></p>
+    ${guide}
+  </main>
+</body>
+</html>`);
 console.log('Built static demo in site-dist/ (root- and project-path safe).');

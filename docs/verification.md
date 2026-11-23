@@ -10,8 +10,9 @@ a GitHub Pages deployment or npm publication.
 - Chromium 156.0.8078.4 and Firefox 157.0 launch successfully.
 - WebKit 27.2 is downloaded but cannot launch: missing `libicu74`, `libxml2`,
   `libflite1`, and unsupported-OS fallback. No system libraries were changed.
-- Floating UI DOM 1.8.0 is the only direct runtime dependency, bundled into browser
-  artifacts. Stimulus 3.2.2 and Turbo 8.0.23 are test/dev dependencies only.
+- Floating UI DOM 1.8.0 is bundled into both browser artifacts at build time; the
+  package declares no runtime dependencies. Stimulus 3.2.2 and Turbo 8.0.23 are
+  test/dev dependencies only.
 
 ## Checks
 
@@ -19,11 +20,13 @@ Command: `BROWSERS=chromium,firefox npm run check`
 
 - TypeScript and ESLint pass.
 - 142 unit tests pass.
-- 156 browser tests pass (78 scenarios per engine), including axe scans.
+- 158 browser tests pass (79 scenarios per engine), including axe scans and the
+  rendered API guide.
 - Real npm pack extraction, DOM-free Node import, and a separate TypeScript consumer
   verify the package exports, styles, licenses, declarations, preset API, message
   reference, and message override types.
-- Previous npm audit reported zero vulnerabilities.
+- `npm audit --omit=dev` reports zero vulnerabilities. The full audit reports
+  moderate advisories in existing lint tooling.
 
 Tests load built artifacts. Coverage includes all five library types, repeated
 fields, validation, atomic restoration, defensive copies, IDs, lifecycle teardown,
@@ -105,7 +108,8 @@ fixtures, not Rails application/gem tests.
 
 Browser artifacts are self-contained, minified, with source maps, separate CSS,
 declarations, version metadata, and MIT notices. Package checks print raw/gzip sizes.
-Only library files, README, the message reference, and licenses are packed, not examples/dev tooling.
+Only library files, README and its preview image, the API and message guides, and
+licenses are packed, not examples/dev tooling.
 Pages-ready assets build into site-dist/ with relative paths and .nojekyll. Public
 review results require network access; the Pages workflow runs on pushes to master
 and supports manual runs.

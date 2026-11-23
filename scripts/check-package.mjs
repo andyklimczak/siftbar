@@ -4,17 +4,39 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { gzipSync } from 'node:zlib';
+import { runInNewContext } from 'node:vm';
 import assert from 'node:assert/strict';
 const temporary = await mkdtemp(join(tmpdir(), 'siftbar-package-'));
 try {
   const packed = JSON.parse(execFileSync('npm', ['pack', '--ignore-scripts', '--json', '--pack-destination', temporary], { encoding: 'utf8' }))[0];
   const files = packed.files.map(file => file.path);
-  for (const required of ['dist/siftbar.js', 'dist/siftbar.browser.js', 'dist/styles.css', 'dist/base.css', 'dist/types/index.d.ts', 'dist/LICENSE-floating-ui-dom', 'docs/messages.md', 'LICENSE']) assert(files.includes(required), `Missing ${required}`);
-  assert(files.every(file => file.startsWith('dist/') || ['README.md', 'docs/messages.md', 'LICENSE', 'package.json'].includes(file)), 'Development-only files entered the package.');
+  const publicDocs = ['README.md', 'docs/assets/siftbar-preview.png', 'docs/guide.md', 'docs/messages.md', 'LICENSE'];
+  const artifacts = [
+    'dist/siftbar.js', 'dist/siftbar.browser.js', 'dist/styles.css', 'dist/base.css',
+    'dist/types/index.d.ts', 'dist/LICENSE', 'dist/LICENSE-floating-ui-dom',
+    'dist/LICENSE-floating-ui-core', 'dist/LICENSE-floating-ui-utils',
+  ];
+  for (const required of [...publicDocs, ...artifacts]) assert(files.includes(required), `Missing ${required}`);
+  assert(files.every(file => file.startsWith('dist/') || publicDocs.includes(file) || file === 'package.json'), 'Development-only files entered the package.');
   const install = join(temporary, 'node_modules', 'siftbar');
   await mkdir(install, { recursive: true });
   execFileSync('tar', ['-xzf', join(temporary, packed.filename), '--strip-components=1', '-C', install]);
-  const library = await import(pathToFileURL(join(install, 'dist/siftbar.js')).href);
+  const metadata = JSON.parse(await readFile(join(install, 'package.json'), 'utf8'));
+  for (const entry of [metadata.main, metadata.types, metadata.unpkg, metadata.jsdelivr, metadata.exports['.'].types, metadata.exports['.'].import, metadata.exports['./browser'], metadata.exports['./styles.css'], metadata.exports['./base.css']]) {
+    assert.equal(typeof entry, 'string', 'Missing package entry point.');
+    assert(files.includes(entry.replace(/^\.\//, '')), `Entry point not shipped: ${entry}`);
+  }
+  assert.equal(metadata.unpkg, './dist/siftbar.browser.js');
+  assert.equal(metadata.jsdelivr, metadata.unpkg);
+  assert.equal(Object.keys(metadata.dependencies ?? {}).length, 0, 'Self-contained builds should not require runtime package installs.');
+  const consumerModule = join(temporary, 'consumer.mjs');
+  await writeFile(consumerModule, `export * from 'siftbar';
+export const resolveSiftbar = path => import.meta.resolve(path);
+`);
+  const library = await import(pathToFileURL(consumerModule).href);
+  for (const [subpath, artifact] of [['browser', 'siftbar.browser.js'], ['styles.css', 'styles.css'], ['base.css', 'base.css']]) {
+    assert.equal(library.resolveSiftbar(`siftbar/${subpath}`), pathToFileURL(join(install, 'dist', artifact)).href);
+  }
   assert.equal(typeof library.Siftbar, 'function');
   assert.equal(library.DEFAULT_MESSAGES.clear, 'Clear');
   assert.equal(library.DEFAULT_MESSAGES.validation.minimum, 'Minimum is {min}.');
@@ -53,5 +75,10 @@ void bad;
     assert(!/^\s*import\s/m.test(code.toString()), 'Browser artifact requires external imports.');
     console.log(`${filename}: ${code.length} bytes / ${gzipSync(code).length} gzip bytes`);
   }
-  console.log(`Verified real npm pack artifact (${files.length} files), Node import without DOM, and consumer declarations.`);
+  const browser = {};
+  runInNewContext(await readFile(join(install, 'dist/siftbar.browser.js'), 'utf8'), browser);
+  assert.equal(typeof browser.Siftbar, 'function');
+  assert.equal(browser.Siftbar, browser.SiftbarLibrary.Siftbar);
+  assert.equal(typeof browser.SiftbarLibrary.SiftbarValidationError, 'function');
+  console.log(`Verified real npm pack artifact (${files.length} files), package/CDN entry points, standalone globals, Node import without DOM, and consumer declarations.`);
 } finally { await rm(temporary, { recursive: true, force: true }); }

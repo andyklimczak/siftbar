@@ -4,12 +4,35 @@
   "description": "A framework-free, typed filter bar for the web.",
   "type": "module",
   "license": "MIT",
+  "homepage": "https://andyklimczak.github.io/siftbar/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/andyklimczak/siftbar.git"
+  },
+  "bugs": {
+    "url": "https://github.com/andyklimczak/siftbar/issues"
+  },
+  "keywords": [
+    "filter-bar",
+    "search",
+    "filters",
+    "vanilla-js",
+    "typescript",
+    "framework-agnostic"
+  ],
+  "unpkg": "./dist/siftbar.browser.js",
+  "jsdelivr": "./dist/siftbar.browser.js",
+  "publishConfig": {
+    "access": "public"
+  },
   "sideEffects": [
     "**/*.css"
   ],
   "files": [
     "dist",
     "README.md",
+    "docs/assets/siftbar-preview.png",
+    "docs/guide.md",
     "docs/messages.md",
     "LICENSE"
   ],
@@ -37,12 +60,10 @@
     "check": "npm run typecheck && npm run lint && npm test && npm run test:browser && npm run check:package",
     "prepack": "npm run build"
   },
-  "dependencies": {
-    "@floating-ui/dom": "^1.7.4"
-  },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.0",
     "@eslint/js": "^9.39.0",
+    "@floating-ui/dom": "^1.7.4",
     "@hotwired/stimulus": "^3.2.2",
     "@hotwired/turbo": "^8.0.23",
     "@playwright/test": "^1.56.0",
@@ -50,6 +71,8 @@
     "esbuild": "^0.28.2",
     "eslint": "^9.39.0",
     "globals": "^16.5.0",
+    "marked": "^18.2.1",
+    "marked-gfm-heading-id": "^4.1.4",
     "typescript": "^5.9.0",
     "typescript-eslint": "^8.46.0",
     "vitest": "^5.0.4"
