@@ -28,7 +28,6 @@ function setupRegions(source, path, tag = 'setup') {
 }
 const region = (source, path, tag) => setupRegions(source, path, tag).replace(/^export /gm, '');
 const schemaPath = 'examples/report-of-week/schema.js';
-const fields = region(await readFile(schemaPath, 'utf8'), schemaPath, 'setup');
 const presetPath = 'examples/vanilla/presets.js';
 const presets = region(await readFile(presetPath, 'utf8'), presetPath, 'presets');
 const dataPath = 'examples/report-of-week/data.js';
@@ -48,8 +47,8 @@ for (const [name, path, handler] of [
   const source = await readFile(path, 'utf8');
   const libraryImport = source.match(/^import \{ Siftbar \} from '[^']+';$/m)?.[0];
   if (!libraryImport) throw new Error(`Missing Siftbar import in ${path}`);
-  const snippet = [libraryImport.replace(/from '[^']+'/, "from '../dist/siftbar.js'"), fields,
-    ...(name === 'local' ? [presets] : []), setupRegions(source, path)].join('\n\n');
+  const imports = `${libraryImport.replace(/from '[^']+'/, "from '../dist/siftbar.js'")}\nimport { fields } from '../${schemaPath}';`;
+  const snippet = [imports, ...(name === 'local' ? [presets] : []), setupRegions(source, path)].join('\n\n');
   await writeFile(`site-dist/snippets/${name}.js`, `${snippet}\n`);
   await writeFile(`site-dist/snippets/${name}.html`, `${setupRegions(markup, 'site/index.html', `markup-${name}`)}\n`);
   if (handler) {

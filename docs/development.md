@@ -37,9 +37,11 @@ local environment files, logs, and editor files are ignored.
 ## Example data
 
 The examples progress from basic setup to preset buttons, a preset dropdown and
-Clear, the Report of the Week API, themes, and a native modal. Setup code and real
-`updateResults`/HTTP functions appear inline, with separate copy buttons. Other
-field types remain supported and covered by interaction fixtures.
+Clear, the Report of the Week API, themes, and a native modal. **Setup** shows
+how each example mounts Siftbar, **Fields** shows the shared review schema, and
+**Results logic** shows the app's `updateResults` and HTTP code for data-backed
+examples. The copy button copies the selected view. Other field types remain
+supported and covered by interaction fixtures.
 
 Data examples request `https://thereportoftheweekapi.com/api/v1/reports/` using
 `category`, `min_rating`, `max_rating`, `min_date`, and `max_date`. An enum “is any

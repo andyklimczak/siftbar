@@ -75,10 +75,10 @@ coverage of filter-only field-label/alias navigation.
 The site leads with basic → preset buttons → dropdown/Clear, then API, themes, and
 modal examples. Data widgets contain counts and essential status, not request URLs
 or long plumbing explanations. Six setup/HTML snippets execute with app-supplied
-handlers. Four source-backed results snippets execute independently against real
-fetch calls intercepted with provider-shaped HTTP fixtures. Handler/query/HTTP code
-is visible inline, separately copyable, and stays visible across setup/full-source
-tab changes. Rendering internals and state tools remain optional.
+handlers and use a shared schema shown in the Fields tab. Four source-backed
+results snippets execute independently against fetch calls intercepted with
+provider-shaped HTTP fixtures. Handler/query/HTTP code lives in a separate
+Results logic tab. The copy button copies the currently selected sample.
 
 Provider fixtures contain eight representative reviews, not production bundled
 records. They cover API parameters, supported operator lists, empty responses,

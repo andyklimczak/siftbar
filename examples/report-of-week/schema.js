@@ -1,5 +1,4 @@
 export const quickSearchFields = ['product', 'manufacturer'];
-// @setup:start
 export const fields = [
   { key: 'product', label: 'Product', type: 'text' },
   { key: 'manufacturer', label: 'Manufacturer', type: 'text' },
@@ -14,4 +13,3 @@ export const fields = [
   { key: 'rating', label: 'Rating', type: 'number', min: 0, max: 10, operators: ['gte', 'lte', 'between'] },
   { key: 'dateReleased', label: 'Released', type: 'date', operators: ['on', 'between'] },
 ];
-// @setup:end

@@ -21,7 +21,7 @@ app decides what matches and how to display the results.
 - **Keyboard-friendly controls** with light and dark themes and
   [localizable UI text](docs/messages.md).
 - **Framework-free:** use it from JavaScript or TypeScript, with a bundler or
-  directly in a modern browser. Siftbar makes no network requests.
+  directly in a modern browser.
 
 ## Quick start
 
@@ -42,27 +42,32 @@ In your browser entry point, after those elements are in the DOM:
 import { Siftbar } from 'siftbar';
 import 'siftbar/styles.css';
 
-const output = document.getElementById('filter-state');
-const showState = state => {
-  output.textContent = JSON.stringify(state, null, 2);
-};
+const fields = [
+  { key: 'product', label: 'Product', type: 'text' },
+  { key: 'rating', label: 'Rating', type: 'number', min: 0, max: 10, operators: ['gte', 'lte', 'between'] },
+];
 
-const bar = new Siftbar(document.getElementById('filters'), {
-  fields: [
-    { key: 'name', label: 'Name', type: 'text' },
-    { key: 'rating', label: 'Rating', type: 'number', min: 0, max: 10 },
-  ],
-  onChange: showState,
+const siftbar = new Siftbar(document.querySelector('#filters'), {
+  fields,
+  onChange: updateResults,
 });
 
-showState(bar.getState());
+function updateResults(state) {
+  document.querySelector('#filter-state').textContent = JSON.stringify(state, null, 2);
+}
+
+updateResults(siftbar.getState());
 ```
 
-Type a name and press Enter to commit a text search. Click the input and choose
-**Rating** to add a filter; click the resulting chip to edit it. `onChange` runs
-when search or filters are committed, not on every keystroke. In your app, replace
-`showState` with a handler that uses `state.search` and `state.filters` to filter
-local data or query your API. Validate client-provided state on the server.
+Type a product name and press Enter to commit a text search. Click the input and
+choose **Rating** to add a filter; click the chip to edit it. `onChange` runs when
+search or filters are committed, not on every keystroke.
+
+Here `updateResults` just displays the state. In your app, use `state.search` and
+`state.filters` in that handler to filter local data or query your API. Validate
+client-provided state on the server. The [live review demo](https://andyklimczak.github.io/siftbar/#playground)
+uses the same setup with more fields. Open **Results logic** there to see how it
+fetches and renders reviews.
 
 ### Without a bundler
 

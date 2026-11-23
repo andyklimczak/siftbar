@@ -17,13 +17,13 @@
         <article><h3>1. Load assets</h3><pre><code>&lt;link rel="stylesheet" href="./dist/styles.css"&gt;
 &lt;div id="filters"&gt;&lt;/div&gt;
 &lt;script type="module" src="./filters.js"&gt;&lt;/script&gt;</code></pre></article>
-        <article><h3>2. Define fields</h3><pre><code>import { Siftbar } from './dist/siftbar.js';
+        <article><h3>2. Configure Siftbar</h3><pre><code>import { Siftbar } from './dist/siftbar.js';
 
-const bar = new Siftbar(host, {
+const siftbar = new Siftbar(document.querySelector('#filters'), {
   fields,
   onChange: updateResults,
 });</code></pre></article>
-        <article><h3>3. Connect results</h3><p>Implement <code>updateResults</code> to fetch and render your data. The working handlers are shown below.</p></article>
+        <article><h3>3. Connect results</h3><p>Define the fields people can filter on and pass your own <code>updateResults</code> callback. The examples below separate <strong>Setup</strong>, <strong>Fields</strong>, and <strong>Results logic</strong>.</p></article>
       </div>
     </section>
     <p id="site-error" role="alert"></p>

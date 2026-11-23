@@ -3,7 +3,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { mockDataApis } from './data-apis.js';
 test.beforeEach(async ({ page }) => { await mockDataApis(page); });
 
-test('examples are concise, review-only, and show real results handlers inline', async ({ page }) => {
+test('review examples open with concise setup and keep results logic separate', async ({ page }) => {
   const failures = [];
   page.on('pageerror', error => failures.push(error.message));
   await page.goto('./');
@@ -13,16 +13,17 @@ test('examples are concise, review-only, and show real results handlers inline',
   await expect(page.locator('body')).not.toContainText('setFilters applies');
   await expect(page.locator('.request-url')).toHaveCount(0);
   for (const card of await page.locator('.code-card').all()) {
-    await expect(card.locator('.setup-code')).toContainText('new Siftbar');
+    const code = card.locator('pre code');
+    await expect(code).toContainText('new Siftbar');
+    await expect(code).toContainText('import { fields }');
+    await expect(code).not.toContainText('const fields =');
+    await expect(code).not.toContainText('getState');
+    await expect(code).not.toContainText('setState');
     await expect(card.locator('.source-details')).not.toHaveAttribute('open');
-    await expect(card.locator('.setup-code')).not.toContainText('getState');
-    await expect(card.locator('.setup-code')).not.toContainText('setState');
     if (await card.getAttribute('data-handler')) {
-      await expect(card.locator('.handler-code')).toBeVisible();
-      await expect(card.locator('.handler-code')).toContainText('function updateResults(');
-      await expect(card.locator('.handler-code')).toContainText('await fetch(');
-      await expect(card.locator('.copy-handler')).toBeVisible();
-      expect(await card.locator('.handler-source').evaluate(element => Boolean(element.closest('details')))).toBe(false);
+      await expect(code).toContainText('onChange: updateResults');
+      await expect(code).not.toContainText('await fetch(');
+      await expect(card.getByRole('button', { name: 'Results logic', exact: true })).toHaveAttribute('aria-pressed', 'false');
     }
     for (const path of (await card.getAttribute('data-sources')).split(',')) expect((await page.request.get(path)).ok()).toBe(true);
   }
@@ -40,9 +41,9 @@ test('examples are concise, review-only, and show real results handlers inline',
   const source = page.locator('#preset-dropdown .code-card');
   await source.locator('.source-details > summary').click();
   await source.getByRole('button', { name: 'presets.js', exact: true }).click();
-  await expect(source.locator('.setup-code')).toContainText('export const presets');
+  await expect(source.locator('pre code')).toContainText('export const presets');
   await source.locator('.source-details > summary').click();
-  await expect(source.locator('.setup-code')).toContainText('setFilters');
+  await expect(source.locator('pre code')).toContainText('setFilters');
   expect(failures).toEqual([]);
 });
 
@@ -89,7 +90,7 @@ test('displayed setup snippets run with consumer-supplied handlers', async ({ pa
   await page.goto('fixtures/');
   await page.evaluate(async () => {
     window.setupChanges = [];
-    window.updateResults = data => window.setupChanges.push(data.filters);
+    window.updateResults = state => window.setupChanges.push(state);
     for (const name of ['basic', 'buttons', 'local', 'reports', 'themes', 'modal']) {
       const template = document.createElement('template');
       template.innerHTML = await fetch(`../snippets/${name}.html`).then(response => response.text());
@@ -97,14 +98,18 @@ test('displayed setup snippets run with consumer-supplied handlers', async ({ pa
       await import(`../snippets/${name}.js`);
     }
   });
+  const search = page.locator('#basic-filters').getByRole('combobox');
+  await search.fill('Chicken');
+  await search.press('Enter');
+  expect(await page.evaluate(() => window.setupChanges.at(-1).search)).toBe('Chicken');
   await page.locator('#fast-food-preset').click();
-  expect(await page.evaluate(() => window.setupChanges.at(-1).map(({ field, operator, value }) => ({ field, operator, value })))).toEqual([
+  expect(await page.evaluate(() => window.setupChanges.at(-1).filters.map(({ field, operator, value }) => ({ field, operator, value })))).toEqual([
     { field: 'category', operator: 'eq', value: 'Running On Empty' }, { field: 'rating', operator: 'gte', value: 8 },
   ]);
   await page.locator('#local-preset').selectOption('energy');
-  expect(await page.evaluate(() => window.setupChanges.at(-1)[0].value)).toBe('Energy Crisis');
+  expect(await page.evaluate(() => window.setupChanges.at(-1).filters[0].value)).toBe('Energy Crisis');
   await page.locator('#local-reset').click();
-  expect(await page.evaluate(() => window.setupChanges.at(-1))).toEqual([]);
+  expect(await page.evaluate(() => window.setupChanges.at(-1).filters)).toEqual([]);
 });
 
 test('theme variables apply independently to top-layer popups', async ({ page }) => {
@@ -228,6 +233,8 @@ test('Pages assets work at the domain root and project path', async ({ page }) =
 
 test('demo shell passes automated accessibility checks', async ({ page }) => {
   await page.goto('./');
-  await expect(page.locator('.handler-code').first()).not.toBeEmpty();
+  const basic = page.locator('#playground .code-card');
+  await basic.getByRole('button', { name: 'Results logic', exact: true }).click();
+  await expect(basic.locator('pre code')).toContainText('function updateResults(');
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
 });

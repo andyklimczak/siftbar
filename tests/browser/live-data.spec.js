@@ -132,13 +132,15 @@ for (const mode of ['blocked', 'error', 'malformed']) {
   });
 }
 
-test('API failure keeps controls and inline code usable; retry uses latest filters', async ({ page }) => {
+test('API failure keeps controls and results code usable; retry uses latest filters', async ({ page }) => {
   const controls = await mockDataApis(page, { reports: 'blocked' });
   await page.goto('./');
   await page.waitForFunction(() => Boolean(window.siftbarDemos));
   await expect(page.locator('#reports-count')).toHaveText('Unavailable');
   await expect(page.locator('#reports-retry')).toBeVisible();
-  await expect(page.locator('#reports .handler-code')).toContainText('await fetch(');
+  const card = page.locator('#reports .code-card');
+  await card.getByRole('button', { name: 'Results logic', exact: true }).click();
+  await expect(card.locator('pre code')).toContainText('await fetch(');
   await page.evaluate(() => window.siftbarDemos.reports.setFilters([{ field: 'category', operator: 'eq', value: 'Energy Crisis' }]));
   await expect(page.locator('#reports-retry')).toBeVisible();
   controls.reports = 'success';
